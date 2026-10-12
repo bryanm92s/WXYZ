@@ -1,0 +1,172 @@
+# 📋 Guía de configuración paso a paso
+
+## Arquitectura
+```
+Vercel (React App)  ←→  Google Apps Script  ←→  Google Sheets + Google Calendar
+```
+
+---
+
+## PASO 1 — Crear el Google Spreadsheet
+
+1. Ve a **sheets.google.com** con tu cuenta de Google
+2. Crea una hoja nueva → nómbrala **"SZ DB"**
+3. Copia el **ID** de la URL:
+   ```
+   https://docs.google.com/spreadsheets/d/  →ESTE_ES_EL_ID←  /edit
+   ```
+   (No necesitas hacer nada más, el script crea las hojas automáticamente)
+
+---
+
+## PASO 2 — Configurar Google Apps Script
+
+1. Ve a **script.google.com**
+2. Crea un proyecto nuevo → nómbralo **"SZ API"**
+3. **Pega el manifiesto.** En ⚙️ → **Mostrar archivo de manifiesto** y
+   reemplaza todo su contenido por el de `apps-script/appsscript.json`.
+   > ⚠️ No lo omitas: sin el bloque `"webapp"` con
+   > `"access": "ANYONE_ANONYMOUS"` la app de Vercel **no podrá** llamar al
+   > script y se quedará en «Modo sin conexión».
+4. Pega todo el contenido del archivo `apps-script/Code.gs`
+5. **Guarda las propiedades** (engranaje ⚙️ → *Propiedades del proyecto* →
+   *Propiedades de script*). **No las escribas en el código**: el repositorio
+   es público.
+   - **`SB_SYNC_TOKEN`** → un texto **único y largo** (también lo usarás en
+     `VITE_TOKEN`).
+   - **`SB_AUTHORIZED_EMAIL`** → tu correo.
+     > ⚠️ **Obligatoria.** Sin ella **no se envía nada**: ni el código de
+     > restablecimiento, ni los reportes automáticos, ni el respaldo semanal.
+   - **`SB_BIZ_NAME`** → el nombre del negocio **tal como debe aparecer en
+     los correos** que envía el script (código de restablecimiento).
+     Opcional: si falta, los correos firman con «SZ» (el nombre por
+     defecto del despliegue original).
+6. Vincula el script a tu spreadsheet:
+   - **Opción recomendada:** desde el Spreadsheet, ve a **Extensiones → Apps
+     Script** y pega el código ahí. Así el script tiene acceso automático a
+     ese spreadsheet.
+
+---
+
+## PASO 3 — Desplegar como Web App
+
+1. En Apps Script, clic en **Implementar → Nueva implementación**
+2. Tipo: **Aplicación web**
+3. Configuración:
+   - **Ejecutar como:** Yo (tu cuenta de Google)
+   - **Quién tiene acceso:** Cualquier usuario
+4. Clic en **Implementar**
+5. Autoriza los permisos cuando te lo pida (Calendar + Sheets)
+6. **Copia la URL** que aparece, se ve así:
+   ```
+   https://script.google.com/macros/s/AKfycbx.../exec
+   ```
+
+---
+
+## PASO 4 — Subir a GitHub
+
+```bash
+# Descomprime el ZIP, entra a la carpeta
+cd SZ
+
+git init
+git add .
+git commit -m "feat: SZ inicial"
+
+# Crea repo en github.com y conecta:
+git remote add origin https://github.com/TU_USUARIO/SZ.git
+git branch -M main
+git push -u origin main
+```
+
+---
+
+## PASO 5 — Deploy en Vercel
+
+1. Ve a **vercel.com** → New Project → Importa tu repo
+2. Antes de hacer deploy, agrega las **Variables de entorno**:
+
+   | Variable | Valor |
+   |---|---|
+   | `VITE_SCRIPT_URL` | La URL del Apps Script del Paso 3 |
+   | `VITE_TOKEN` | El mismo valor de la propiedad `SB_SYNC_TOKEN` |
+   | `VITE_BIZ_NAME` | El nombre del negocio (en un cliente nuevo, **obligatoria**) |
+   | `VITE_CATALOG` | `cejas`, `unas` o `peluqueria` (catálogo inicial) |
+   | `VITE_ADMIN_WHATSAPP` | Tu número con prefijo de país (p. ej. `573001234567`) |
+
+   > 🔑 **Nunca** escribas el token en `Code.gs`: el repositorio es público.
+   > `VITE_ADMIN_WHATSAPP` habilita el botón «💬 WhatsApp admin» del reporte
+   > y también vive **solo** en Vercel.
+
+3. Clic en **Deploy** ✅
+
+---
+
+## PASO 6 — Actualizar el script (si cambias algo)
+
+Cada vez que modifiques el `Code.gs`:
+- Menú → **Implementar → Gestionar implementaciones**
+- Edita la implementación existente → **Nueva versión** → Implementar
+
+---
+
+## ✅ Verificar que funciona
+
+1. Abre tu app en Vercel
+2. En el header debe aparecer **"✓ Sincronizado"** en verde
+3. Agrega una cliente de prueba → verifica que aparece en Google Sheets
+4. Agenda una cita → verifica que aparece en Google Calendar con color rosado
+
+---
+
+## ⚡ Funcionalidades opcionales
+
+Con los pasos anteriores la app ya funciona. Estas funciones se activan
+aparte y están explicadas en detalle en
+[`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md):
+
+- **Reportes automáticos** (diario, semanal, mensual y anual por correo).
+  Se instalan ejecutando `setupAllReportTriggers()` **una sola vez**.
+- **Respaldos automáticos** en Drive. Se instalan con **dos** funciones
+  separadas — ninguna de ellas es `setupAllReportTriggers()`:
+  - `setupDailyBackupTrigger()` → copia diaria a las 23:00. **Es la que
+    crea** las carpetas `BACKUP-PROYECTO/Backups/<nombre de la hoja>/`.
+  - `setupWeeklyEmailTrigger()` → envía el último respaldo los sábados 9:00.
+  > ⚠️ El correo semanal **no funciona hasta que exista al menos una copia**,
+  > y la única que la genera es el trigger diario.
+- **Recuperación de acceso por código** — funciona sola, pero depende de que
+  exista la propiedad `SB_AUTHORIZED_EMAIL`.
+
+---
+
+## ❓ Solución de problemas
+
+**"Sin conexión" en la app**
+- Verifica que `VITE_SCRIPT_URL` y `VITE_TOKEN` están bien en Vercel
+- Asegúrate que el Apps Script está desplegado como "Cualquier usuario"
+- El token en Vercel debe ser idéntico a la propiedad `SB_SYNC_TOKEN` (Script Properties)
+
+**El evento de Calendar no se crea**
+- Verifica que autorizaste permisos de Calendar al desplegar el script
+- En Apps Script → Implementar → Gestionar → vuelve a implementar y autoriza
+
+**Datos no aparecen entre dispositivos**
+- Verifica que ambos dispositivos apuntan a la misma URL de Vercel
+- Los datos viven en Google Sheets, no en el navegador
+
+**No llegan los reportes automáticos**
+- Revisa que existe la propiedad `SB_AUTHORIZED_EMAIL` (engranaje ⚙️ →
+  *Propiedades del proyecto* → *Propiedades de script*)
+- Abre **Registro de ejecución** en el editor de Apps Script: si falta la
+  propiedad, ahí aparece el aviso «falta la propiedad SB_AUTHORIZED_EMAIL»
+- Verifica que ejecutaste `setupAllReportTriggers()` una vez
+
+**No llega el correo de respaldo del sábado**
+- El correo adjunta el respaldo **más reciente**, así que **primero debe
+  existir al menos una copia**. Sin ninguna, falla con
+  «Carpeta de backups de "…" no encontrada».
+- Verifica que ejecutaste `setupDailyBackupTrigger()` (crea la copia diaria
+  a las 23:00 y **genera las carpetas**) y `setupWeeklyEmailTrigger()`.
+- Para no esperar, ejecuta `createDailyBackup()` a mano: crea el primer
+  respaldo al instante y ya podrás probar el correo.
