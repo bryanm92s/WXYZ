@@ -1,11 +1,11 @@
-# SZ — Documentación
+# WXYZ — Documentación
 
 Esta carpeta contiene la documentación técnica, funcional y operativa completa
-del sistema **SZ**. Está escrita en español y dirigida a tres audiencias
-distintas: quien va a **instalar** SZ, quien lo va a **usar** a diario y
+del sistema **WXYZ**. Está escrita en español y dirigida a tres audiencias
+distintas: quien va a **instalar** WXYZ, quien lo va a **usar** a diario y
 quien lo va a **mantener**.
 
-> **Estado del sistema:** SZ está implementado, corregido y probado. Esta
+> **Estado del sistema:** WXYZ está implementado, corregido y probado. Esta
 > documentación describe el sistema **existente**, no un sistema planeado.
 > Cuando algo no se pudo verificar desde el código, se dice explícitamente.
 
@@ -16,7 +16,7 @@ quien lo va a **mantener**.
 | Documento | Para quién | Contenido |
 |---|---|---|
 | [`../README.md`](../README.md) | Todos | Punto de entrada: descripción, stack, estructura, comandos y enlaces |
-| [`MANUAL_TECNICO.md`](MANUAL_TECNICO.md) | Administrador / implementador | Instalar SZ desde cero: requisitos, variables, Apps Script, Sheets, Calendar, Vercel, seguridad y mantenimiento |
+| [`MANUAL_TECNICO.md`](MANUAL_TECNICO.md) | Administrador / implementador | Instalar WXYZ desde cero: requisitos, variables, Apps Script, Sheets, Calendar, Vercel, seguridad y mantenimiento |
 | [`ONBOARDING_CLIENTE.md`](ONBOARDING_CLIENTE.md) | Administrador / comercial | Llevar este mismo programa a **otro negocio**: duplicar el despliegue, cambiar de nombre, elegir catálogo y qué NO se toca |
 | [`MANUAL_USUARIO.md`](MANUAL_USUARIO.md) | Operadora / usuario final | Cómo usar la app día a día, sin lenguaje técnico |
 | [`ARQUITECTURA_Y_FUNCIONALIDADES.md`](ARQUITECTURA_Y_FUNCIONALIDADES.md) | Desarrollador | Comportamiento real: arquitectura, entidades, reglas de negocio y matriz de funcionalidades |
@@ -24,7 +24,7 @@ quien lo va a **mantener**.
 
 ### Ruta de lectura sugerida
 
-- **Voy a instalar SZ por primera vez** → [`MANUAL_TECNICO.md`](MANUAL_TECNICO.md)
+- **Voy a instalar WXYZ por primera vez** → [`MANUAL_TECNICO.md`](MANUAL_TECNICO.md)
   (secciones A → G).
 - **Voy a usar la app en el estudio** → [`MANUAL_USUARIO.md`](MANUAL_USUARIO.md)
   completo.

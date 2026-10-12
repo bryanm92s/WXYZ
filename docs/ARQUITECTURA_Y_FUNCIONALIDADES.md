@@ -1,4 +1,4 @@
-# 🏗️ Arquitectura y Funcionalidades — SZ
+# 🏗️ Arquitectura y Funcionalidades — WXYZ
 
 Informe técnico-funcional del sistema **tal como está implementado**. Cada regla
 se cita con el **nombre real** de la función, componente o archivo que la

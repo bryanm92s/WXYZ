@@ -1,6 +1,6 @@
-# 🙋 Manual de Usuario — SZ
+# 🙋 Manual de Usuario — WXYZ
 
-Guía para usar **SZ** en el día a día del estudio. **No hace falta saber de
+Guía para usar **WXYZ** en el día a día del estudio. **No hace falta saber de
 programación**: todo se explica paso a paso, con lenguaje sencillo.
 
 > **¿Buscas la instalación técnica?** Eso está en
@@ -10,7 +10,7 @@ programación**: todo se explica paso a paso, con lenguaje sencillo.
 
 ## Índice
 
-1. [Qué es SZ y para qué sirve](#1-qué-es-sz-y-para-qué-sirve)
+1. [Qué es WXYZ y para qué sirve](#1-qué-es-wxyz-y-para-qué-sirve)
 2. [Cómo acceder](#2-cómo-acceder)
 3. [Navegación general](#3-navegación-general)
 4. [Panel principal y Citas de Hoy](#4-panel-principal-y-citas-de-hoy)
@@ -32,9 +32,9 @@ programación**: todo se explica paso a paso, con lenguaje sencillo.
 
 ---
 
-## 1. Qué es SZ y para qué sirve
+## 1. Qué es WXYZ y para qué sirve
 
-**SZ** es una aplicación que se abre en el navegador del celular (o de la
+**WXYZ** es una aplicación que se abre en el navegador del celular (o de la
 computadora) y te permite administrar tu estudio de cejas y pestañas:
 
 - **Agendar citas** con horarios que nunca se enciman.
@@ -51,7 +51,7 @@ cálculo.
 
 ## 2. Cómo acceder
 
-1. Abre la dirección de tu app (la que te entregaron al instalar SZ).
+1. Abre la dirección de tu app (la que te entregaron al instalar WXYZ).
 2. Listo: **no hay usuario ni contraseña** que teclear.
 
 > ⚠️ **Si ves «Modo sin conexión»** en la parte de arriba, significa que la app
@@ -61,11 +61,11 @@ cálculo.
 
 ### Si te sale un error de «varias cuentas de Google»
 
-Google no permite que una app como SZ funcione si tienes **varias cuentas de
+Google no permite que una app como WXYZ funcione si tienes **varias cuentas de
 Google abiertas** en el mismo navegador. La solución:
 
 1. Abre una **ventana de incógnito** (Ctrl+Shift+N en Chrome).
-2. Entra **solo** con la cuenta de la dueña de SZ.
+2. Entra **solo** con la cuenta de la dueña de WXYZ.
 3. Abre la app ahí.
 
 ---
@@ -162,7 +162,7 @@ botón **↻** de la barra superior para recargar.
 
 - Si al guardar dice «No se pudo guardar», **no se guardó**. Revisa la conexión
   y vuelve a intentar.
-- Si dice «Error al agendar en Calendar», la cita **sí quedó en SZ** pero el
+- Si dice «Error al agendar en Calendar», la cita **sí quedó en WXYZ** pero el
   evento no se creó. Revisa la [sección 18](#18-errores-frecuentes).
 
 ---
@@ -197,7 +197,7 @@ crea otro).
 
 **Resultado:** se borra la cita **y su evento de Calendar**.
 
-**Si algo falla:** si el mensaje dice que la cita se borró de SZ pero **no se
+**Si algo falla:** si el mensaje dice que la cita se borró de WXYZ pero **no se
 pudo borrar el evento de Calendar**, la app te ofrece **reintentar**. Si el
 reintento también falla, te mostrará el **ID del evento** para que lo borres a
 mano en Google Calendar (abre Calendar, busca el evento y elimínalo).
@@ -255,7 +255,7 @@ se pierda por accidente.
 **¿Qué haces si necesitas cambiar algo de una cita completada?**
 
 - Si es un **dato equivocado** (hora, servicio): elimina la cita **antes** de
-  marcarla completada, o contacta a quien administra SZ.
+  marcarla completada, o contacta a quien administra WXYZ.
 - Si solo quieres **corregir el pago**: en Finanzas, en el detalle de ingresos,
   verás el método registrado.
 
@@ -318,14 +318,14 @@ regla, es correcto: la app te está diciendo por qué no puede.
 1. Toca **«✏️ Editar»** en el servicio.
 2. Cambia el valor y guarda.
 
-> 💡 **Historial de precios:** cuando cambias un precio, SZ **guarda la fecha
+> 💡 **Historial de precios:** cuando cambias un precio, WXYZ **guarda la fecha
 > del cambio**. Las citas viejas **conservan el precio que tenían en su
 > momento**, así tu historial de ingresos no se altera.
 
 ### Duración
 
 La duración define **cuánto tiempo se bloquea la agenda** con ese servicio. Si
-no tiene duración, SZ usa **60 minutos** por defecto.
+no tiene duración, WXYZ usa **60 minutos** por defecto.
 
 - Opciones rápidas: 30, 60, 90, 120, 150, 180 minutos.
 - Valores permitidos: de **15 a 480** minutos.
@@ -365,10 +365,10 @@ no tiene duración, SZ usa **60 minutos** por defecto.
 
 **Sincronización:**
 
-- SZ y Google Calendar se sincronizan **en el momento** al crear, editar o
+- WXYZ y Google Calendar se sincronizan **en el momento** al crear, editar o
   borrar.
 - **No hay re-sincronización automática** en sentido contrario: si borras el
-  evento **directo en Google Calendar**, esa cita **seguirá existiendo en SZ**.
+  evento **directo en Google Calendar**, esa cita **seguirá existiendo en WXYZ**.
   Borra o edita la cita **desde la app**.
 
 ---
@@ -397,7 +397,7 @@ no tiene duración, SZ usa **60 minutos** por defecto.
 ### Precios
 
 - El precio de cada servicio está en **✂️ Servicios**.
-- Al agendar, SZ calcula el **total** sumando los servicios + domicilio.
+- Al agendar, WXYZ calcula el **total** sumando los servicios + domicilio.
 - Al **editar** una cita, se respeta el **precio que tenía al crearse** (no se
   recalcula con los precios nuevos), salvo que cambies los servicios.
 
@@ -421,7 +421,7 @@ no tiene duración, SZ usa **60 minutos** por defecto.
 > ⚠️ **No se puede mandar recordatorio de una cita que ya pasó.** Si la fecha
 > ya venció, el botón no aparece o está deshabilitado.
 
-> 💡 SZ **no envía mensajes solo**: siempre se abre WhatsApp con el texto
+> 💡 WXYZ **no envía mensajes solo**: siempre se abre WhatsApp con el texto
 > listo. **Tú decides** si lo envías.
 
 ### El botón «💬 WhatsApp admin» (del reporte)
@@ -591,7 +591,7 @@ que entró y salió, con los filtros **Todo · Ingresos · Gastos**, ordenados
 
 ### ⚠️ WhatsApp y correo deben decir lo mismo
 
-SZ genera **el mismo texto** para el mensaje de WhatsApp y para el correo
+WXYZ genera **el mismo texto** para el mensaje de WhatsApp y para el correo
 automático. **No hay una versión corta y otra larga**: si ves una diferencia,
 es un error y hay que reportarlo.
 
@@ -630,7 +630,7 @@ sí.
 1. Ve a **⚙️ Ajustes**.
 2. Busca **Restablecer el sistema**.
 3. Téclea la **palabra de confirmación** que pide la pantalla.
-4. Toca **«Enviar código»**. SZ mandará un **código de 8 caracteres** a
+4. Toca **«Enviar código»**. WXYZ mandará un **código de 8 caracteres** a
    **tu correo** (el de la dueña).
 5. Abre el correo, copia el código y **pégalo** en la app.
 6. Confirma. Se borra todo.
@@ -694,7 +694,7 @@ cita. Son **tres casos distintos**:
 
 ### El evento quedó pero la cita se borró (o al revés)
 
-SZ **no puede deshacer** una operación entre la hoja y Calendar. Si el aviso te
+WXYZ **no puede deshacer** una operación entre la hoja y Calendar. Si el aviso te
 da el **ID del evento**, bórralo a mano en Google Calendar.
 
 ### Una hora «no está disponible» y no sé por qué
@@ -748,7 +748,7 @@ restauración está en [`MANUAL_TECNICO.md`](MANUAL_TECNICO.md) sección G.7.
 
 > 📖 **Documentos relacionados**
 >
-> - [`MANUAL_TECNICO.md`](MANUAL_TECNICO.md) — instalar y configurar SZ
+> - [`MANUAL_TECNICO.md`](MANUAL_TECNICO.md) — instalar y configurar WXYZ
 > - [`ARQUITECTURA_Y_FUNCIONALIDADES.md`](ARQUITECTURA_Y_FUNCIONALIDADES.md) —
 >   cómo funciona por dentro
 > - [`PRUEBAS_Y_MANTENIMIENTO.md`](PRUEBAS_Y_MANTENIMIENTO.md) — pruebas,

@@ -1,6 +1,6 @@
-# 🧪 Pruebas y Mantenimiento — SZ
+# 🧪 Pruebas y Mantenimiento — WXYZ
 
-Guía para **probar, diagnosticar, respaldar, restaurar y desplegar** SZ.
+Guía para **probar, diagnosticar, respaldar, restaurar y desplegar** WXYZ.
 
 > **Estado:** las pruebas de este documento se **ejecutaron** en esta ronda de
 > documentación. Los resultados están al final de la

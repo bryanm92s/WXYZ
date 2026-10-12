@@ -1,6 +1,6 @@
-# 📋 Manual Técnico — SZ
+# 📋 Manual Técnico — WXYZ
 
-Guía completa para **instalar, configurar y mantener SZ desde cero** en un
+Guía completa para **instalar, configurar y mantener WXYZ desde cero** en un
 entorno nuevo.
 
 > **Alcance:** todo lo que se describe aquí está verificado contra el código del
@@ -45,9 +45,9 @@ entorno nuevo.
 | **GitHub** | ✅ | Escritura en el repo | Alojar el código |
 | **Vercel** | ✅ | Proyecto propio | Alojar el frontend |
 
-### A.3 Servicios externos que SZ toca
+### A.3 Servicios externos que WXYZ toca
 
-| Servicio | Uso en SZ | Dónde se configura |
+| Servicio | Uso en WXYZ | Dónde se configura |
 |---|---|---|
 | **Google Sheets** | Base de datos (5 hojas) | Vinculado al proyecto de Apps Script |
 | **Google Calendar** | Eventos de cada cita | Calendario por defecto de la cuenta |
@@ -59,7 +59,7 @@ entorno nuevo.
 
 - **Apps Script no soporta varias cuentas de Google abiertas en el mismo
   navegador.** Google reescribe la URL a `/macros/u/N/s/…/exec` y responde
-  404. SZ detecta ese patrón y muestra un mensaje concreto
+  404. WXYZ detecta ese patrón y muestra un mensaje concreto
   (`src/api.js`, `MULTI_ACCOUNT_HINT`). **Solución:** ventana de incógnito con
   solo la cuenta del propietario.
 - **`VITE_*` se inyectan en tiempo de build**, no en runtime: cambiar una
@@ -78,11 +78,11 @@ entorno nuevo.
 URL confirmada en la configuración del proyecto (`git remote -v`):
 
 ```bash
-git clone https://github.com/bryanm92s/SZ.git
-cd SZ
+git clone https://github.com/bryanm92s/WXYZ.git
+cd WXYZ
 ```
 
-> 🔑 **Confirmar en consola:** esa es la URL del repo actual. Si instalaras SZ
+> 🔑 **Confirmar en consola:** esa es la URL del repo actual. Si instalaras WXYZ
 > en otro entorno, usa la URL de **tu** fork o repo.
 
 ### B.2 Instalar dependencias
@@ -225,7 +225,7 @@ Todas se leen con `import.meta.env` y **quedan embebidas en el bundle JS**
 | **Ubicación** | `.env`, Vercel |
 | **Uso** | Catálogo de servicios con el que **arranca** el programa (aún sin datos, y también tras un restablecimiento). Presets en `src/catalogs.js`: `cejas`, `unas`, `peluqueria`, `barberia`, `depilacion`, `masajes`, `estetica`, `maquillaje`. |
 | **Obligatoria** | No |
-| **Valor predeterminado** | `cejas` (el catálogo histórico de SZ) |
+| **Valor predeterminado** | `cejas` (el catálogo histórico de WXYZ) |
 | **Cómo configurarla** | Una de las claves de `CATALOGS`. Una clave desconocida cae a `cejas` sin romper el arranque. |
 | **Reinicio o despliegue** | **Sí** (rebuild). |
 | **Sensibilidad** | Pública |
@@ -283,7 +283,7 @@ saberlo al instalar en otro negocio:
 | `'BACKUP-PROYECTO'` y `'Backups'` | `Code.gs` (buscador de carpetas de Drive) | Carpetas de Drive para los respaldos | ❌ Hardcodeado |
 | `'SZ'` (marca por defecto) | `App.jsx` (`BIZ_NAME`) y `Code.gs` (`BIZ_NAME_DEFAULT`) | Nombre con el que arranca la pestaña y con el que firman los correos **cuando no hay nada configurado** | ✅ Sí, sin editar código: `VITE_BIZ_NAME` (app) y `SB_BIZ_NAME` (correos). Es el **único** resto de marca escrita en el código |
 | `'cejas'` (catálogo por defecto) | `src/catalogs.js` (`DEFAULT_CATALOG_KEY`) | Servicios con los que arranca el programa si nadie elige catálogo | ✅ Sí: `VITE_CATALOG` o `VITE_DEFAULT_SERVICES` |
-| `'sb_c'`, `'sb_s'`, `'sb_a'`, `'sb_e'` | `App.jsx` | Claves de `localStorage` (copia de trabajo offline) | ❌ Hardcodeado, pero **no es marca**: cada dominio tiene su propio `localStorage`, así que un cliente nuevo nunca las comparte con SZ |
+| `'sb_c'`, `'sb_s'`, `'sb_a'`, `'sb_e'` | `App.jsx` | Claves de `localStorage` (copia de trabajo offline) | ❌ Hardcodeado, pero **no es marca**: cada dominio tiene su propio `localStorage`, así que un cliente nuevo nunca las comparte con WXYZ |
 
 > ✅ **El correo ya NO está escrito en el código.** Antes aparecía en tres
 > sitios (`_sendReportEmail`, `sendWeeklyBackupEmail` y como respaldo del
@@ -295,7 +295,7 @@ saberlo al instalar en otro negocio:
 > está escrita en el propio `Code.gs` (que es código fuente). Búscala en esas
 > tres líneas para reemplazarla por la del negocio que instales.
 
-> ⚠️ **Observación pendiente (no corregida por instrucción).** Para instalar SZ
+> ⚠️ **Observación pendiente (no corregida por instrucción).** Para instalar WXYZ
 > en un negocio distinto hay que cambiar al menos las líneas **908** y **1540**
 > de `Code.gs`, o el sistema enviará reportes y respaldos a esa dirección.
 
@@ -327,9 +327,9 @@ Hay **dos caminos**; el primero es el recomendado porque vincula el script a la
 hoja automáticamente:
 
 1. Ve a [sheets.google.com](https://sheets.google.com) y crea una hoja nueva
-   (p. ej. «SZ DB»).
+   (p. ej. «WXYZ DB»).
 2. Con la hoja abierta, ve a **Extensiones → Apps Script**.
-3. Nombra el proyecto (p. ej. «SZ API»).
+3. Nombra el proyecto (p. ej. «WXYZ API»).
 
 > 📌 **El script usa `SpreadsheetApp.getActiveSpreadsheet()`**, así que
 > **necesita estar vinculado a la hoja**. Si creas el proyecto suelto en
@@ -377,7 +377,7 @@ producción**:
 
 **Para qué sirve cada scope:**
 
-| Scope | Función de SZ que lo necesita |
+| Scope | Función de WXYZ que lo necesita |
 |---|---|
 | `spreadsheets` | Leer y escribir las 5 hojas |
 | `calendar` | Crear, actualizar y borrar eventos de cita |
@@ -448,12 +448,12 @@ En **⚙️ → Propiedades del proyecto → Propiedades de script**, agrega:
 
 | Opción | Valor | Por qué |
 |---|---|---|
-| **Descripción** | «SZ API v1» | Para identificarla |
+| **Descripción** | «WXYZ API v1» | Para identificarla |
 | **Ejecutar como** | **Yo** (`USER_DEPLOYING`) | El script accede a **tu** hoja, tu calendario y tu Gmail. Si eligieras «Usuario que accede», cada visitante necesitaría acceso a tus datos. |
 | **Quién tiene acceso** | **Cualquier usuario** | El frontend no tiene sesión de Google; se autentica solo con el token. |
 
 **«Ejecutar como: Yo»** significa que **toda** la ejecución ocurre con tus
-credenciales: no hay aislamiento entre usuarios, porque SZ **no tiene usuarios**.
+credenciales: no hay aislamiento entre usuarios, porque WXYZ **no tiene usuarios**.
 Cualquier persona con la URL y el token actúa sobre tus datos. Por eso el token
 es la única barrera (ver [sección G](#g-seguridad-y-recuperación)).
 
@@ -610,7 +610,7 @@ y todas las filas** en cada guardado. Consecuencias prácticas:
 
 ### E.5 ¿Y si la sincronización falla?
 
-**No existe transaccionalidad entre Sheets y Calendar.** SZ aborda el problema
+**No existe transaccionalidad entre Sheets y Calendar.** WXYZ aborda el problema
 así:
 
 - **Al eliminar una cita** (`App.jsx` `deleteAppt`, 479–511): primero se borra
@@ -795,7 +795,7 @@ la compara con lo que se pidió borrar (`isResetOutcome`). Así:
 
 ### G.4 Riesgos de exponer secretos en el frontend
 
-| Riesgo | Realidad en SZ |
+| Riesgo | Realidad en WXYZ |
 |---|---|
 | `VITE_TOKEN` es visible | **Sí, y no es evitable** con `VITE_*`. Por eso el mecanismo de reset **no** depende de él. |
 | `VITE_ADMIN_WHATSAPP` es visible | **Sí**, dentro del bundle. No está en el repo ni en git, pero sí en la app desplegada. |

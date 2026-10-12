@@ -10,7 +10,7 @@ Vercel (React App)  ←→  Google Apps Script  ←→  Google Sheets + Google C
 ## PASO 1 — Crear el Google Spreadsheet
 
 1. Ve a **sheets.google.com** con tu cuenta de Google
-2. Crea una hoja nueva → nómbrala **"SZ DB"**
+2. Crea una hoja nueva → nómbrala **"WXYZ DB"**
 3. Copia el **ID** de la URL:
    ```
    https://docs.google.com/spreadsheets/d/  →ESTE_ES_EL_ID←  /edit
@@ -22,7 +22,7 @@ Vercel (React App)  ←→  Google Apps Script  ←→  Google Sheets + Google C
 ## PASO 2 — Configurar Google Apps Script
 
 1. Ve a **script.google.com**
-2. Crea un proyecto nuevo → nómbralo **"SZ API"**
+2. Crea un proyecto nuevo → nómbralo **"WXYZ API"**
 3. **Pega el manifiesto.** En ⚙️ → **Mostrar archivo de manifiesto** y
    reemplaza todo su contenido por el de `apps-script/appsscript.json`.
    > ⚠️ No lo omitas: sin el bloque `"webapp"` con
@@ -68,14 +68,14 @@ Vercel (React App)  ←→  Google Apps Script  ←→  Google Sheets + Google C
 
 ```bash
 # Descomprime el ZIP, entra a la carpeta
-cd SZ
+cd WXYZ
 
 git init
 git add .
-git commit -m "feat: SZ inicial"
+git commit -m "feat: WXYZ inicial"
 
 # Crea repo en github.com y conecta:
-git remote add origin https://github.com/TU_USUARIO/SZ.git
+git remote add origin https://github.com/bryanm92s/WXYZ.git
 git branch -M main
 git push -u origin main
 ```

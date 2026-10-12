@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💫 SZ
+# 💫 WXYZ
 ### Sistema de gestión para estudios de cejas y pestañas (micropigmentación)
 
 **Panel · Citas · Clientes · Servicios · Finanzas · Calendario · Reportes**
@@ -13,7 +13,7 @@ React 18 + Vite · Google Apps Script + Sheets + Calendar · Deploy en Vercel
 [![Deploy](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 [![Backend](https://img.shields.io/badge/Backend-Google_Apps_Script-34A853?logo=googleapps&logoColor=white)](https://script.google.com)
 
-<img src="logo.png" alt="Logo SZ" width="120" />
+<img src="logo.png" alt="Logo WXYZ" width="120" />
 
 </div>
 
@@ -21,7 +21,7 @@ React 18 + Vite · Google Apps Script + Sheets + Calendar · Deploy en Vercel
 
 ## 📖 Acerca del proyecto
 
-**SZ** es una aplicación web **mobile-first** diseñada para que una
+**WXYZ** es una aplicación web **mobile-first** diseñada para que una
 esteticista / micropigmentadora gestione su estudio de cejas y pestañas desde el
 celular, sin instalar nada: agenda citas, lleva clientes y servicios, controla
 ingresos y gastos, recuerda por WhatsApp y sincroniza todo con **Google Calendar**.
@@ -41,7 +41,7 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 
 | Documento | Para qué sirve |
 |---|---|
-| 📋 [`docs/MANUAL_TECNICO.md`](docs/MANUAL_TECNICO.md) | **Instalar SZ desde cero**: requisitos, variables de entorno, Google Apps Script, Sheets, Calendar, Vercel, seguridad y mantenimiento |
+| 📋 [`docs/MANUAL_TECNICO.md`](docs/MANUAL_TECNICO.md) | **Instalar WXYZ desde cero**: requisitos, variables de entorno, Google Apps Script, Sheets, Calendar, Vercel, seguridad y mantenimiento |
 | 🧬 [`docs/ONBOARDING_CLIENTE.md`](docs/ONBOARDING_CLIENTE.md) | **Llevar este programa a otro negocio**: duplicar el despliegue, cambiar de nombre, elegir catálogo y qué NO se toca |
 | 🙋 [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md) | **Manual del usuario final**: cómo usar cada pantalla, paso a paso y sin lenguaje técnico |
 | 🏗️ [`docs/ARQUITECTURA_Y_FUNCIONALIDADES.md`](docs/ARQUITECTURA_Y_FUNCIONALIDADES.md) | **Informe técnico-funcional**: arquitectura, entidades, reglas de negocio y matriz de funcionalidades |
@@ -194,7 +194,7 @@ y **sanea** los montos monetarios (nunca negativos) como defensa en profundidad.
 ## 📁 Estructura del proyecto
 
 ```
-SZ/
+WXYZ/
 ├── index.html                 # HTML raíz (título + favicon emoji por defecto)
 ├── package.json               # Scripts y dependencias
 ├── vite.config.js             # Configuración de Vite + plugin React
@@ -257,8 +257,8 @@ No necesitas Postgres, Redis ni ningún servidor.
 
 ```bash
 # 1. Clona el repositorio
-git clone https://github.com/bryanm92s/SZ.git
-cd SZ
+git clone https://github.com/bryanm92s/WXYZ.git
+cd WXYZ
 
 # 2. Instala las dependencias
 npm install
