@@ -24,6 +24,69 @@ salen de variables de entorno y de propiedades de Apps Script.
 > puedes tener 10 clientes con el mismo código y ninguno ve la información
 > de otro.
 
+### 🤖 O deja que el script haga los pasos contigo
+
+`onboarding-cliente.ps1` recorre **esta misma guía** en modo asistido.
+**No vive dentro de ningún repo** (por eso no aparece en el árbol del
+README): está en la raíz del espacio de trabajo, junto a SZ y a los
+clientes:
+
+```text
+C:\Users\root\Desktop\PROYECTOS GITHUB\
+├── onboarding-cliente.ps1   ← el asistente (fuera de git)
+├── SZ\                       ← la plantilla: de aquí copia
+├── WXYZ\                     ← los clientes nacen al lado
+└── <siguiente cliente>\
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\Users\root\Desktop\PROYECTOS GITHUB\onboarding-cliente.ps1"
+```
+
+La plantilla la detecta solo (busca `.\SZ` junto al script). Si algún día
+la mueves, se la dices: `-Fuente "C:\...\SZ"`. Y el destino por defecto
+es `...\PROYECTOS GITHUB\<nombre>`; puedes forzarlo con `-Destino`.
+
+**Lo que NO copia** (porque cada cliente es un mundo):
+
+- `.git`, `node_modules`, `dist`, `coverage`, `.zcode` ni los `.env`.
+- **`logo.png`** — el icono de SZ no es el del cliente. El script pregunta
+  en el paso 0 por la ruta del logo; si no la das, deja el repo sin él y
+  **quita del README la imagen rota** hasta que lo agregues.
+
+**Lo que renombra solo** — que la documentación del repo nuevo hable del
+repo nuevo: `README`, `SETUP` y los cuatro manuales pasan de «SZ» a
+`<NOMBRE>`, incluido el `git clone .../<NOMBRE>.git`. Con tres excepciones
+a propósito:
+
+- `«SZ»`, `` `SZ` `` y `'SZ'` **no se tocan**: son el valor por defecto del
+  código, que sigue siendo «SZ».
+- `SZ-ROLES` tampoco (es el nombre de una carpeta).
+- `ONBOARDING_CLIENTE.md` y `SESION_*.md` siguen hablando de la madre SZ:
+  son historial y la guía para crear *otros* clientes.
+
+| Tipo de paso | Quién | Qué pasa |
+|---|---|---|
+| **🤖 Automático** | El script | Copia la plantilla a la carpeta del cliente (sin `.git`, `node_modules`, `dist`, `.env` ni `logo.png`), renombra la marca en los docs, `git init` con historia propia, `package.json` → `name`, `.env`, tu `logo.png`, `CUSTOMIZACIONES.md`, remote `madre`, `npm install` + **317 pruebas** + build, y **genera un token nuevo** para `SB_SYNC_TOKEN` / `VITE_TOKEN` |
+| **🧑 Manual** | Tú | Google, GitHub y Vercel: el script **imprime el paso completo** (con las rutas y valores ya rellenados) y espera tu respuesta |
+| **✅ Verificación** | Tú | Los 9 chequeos de la fase D, uno por uno, con la causa probable si algo falla |
+
+**Las tres respuestas que necesitas saber:**
+
+- **S** → ya lo hice → seguimos con el siguiente paso.
+- **N** → aún no → te **repite las instrucciones** y vuelve a preguntar.
+- **X** → saltarlo por ahora → queda en la lista de *pendientes* del
+  resumen final.
+
+Además es **reanudable**: guarda el progreso en
+`%USERPROFILE%\.sz-onboarding\<cliente>.json` (incluye el token). Al
+relanzarlo con el mismo nombre te propone retomar desde donde ibas, y al
+final puedes borrar ese archivo.
+
+> ⚠️ El script **solo lee** de la carpeta de SZ: escribe únicamente en la
+> carpeta del cliente y en su carpeta de estado local. La copia usa
+> robocopy **sin `/MIR`**, así que nada se borra.
+
 ---
 
 ## 1. Resumen: 5 artefactos por cliente
@@ -31,7 +94,7 @@ salen de variables de entorno y de propiedades de Apps Script.
 | # | Artefacto | Dónde se crea | Qué lo hace único |
 |---|---|---|---|
 | 1 | **Google Spreadsheet** | `sheets.google.com` con la cuenta del cliente | Su base de datos |
-| 2 | **Apps Script (Web App)** | `script.google.com` o *Extensiones → Apps Script* desde la hoja | `SB_SYNC_TOKEN` (nueva), `SB_AUTHORIZED_EMAIL`, `SB_BIZ_NAME` |
+| 2 | **Apps Script (Web App)** | `script.google.com` o *Extensiones → Apps Script* desde la hoja | `SB_SYNC_TOKEN` (nueva), `SB_AUTHORIZED_EMAIL`, `SB_BIZ_NAME`, `SB_BACKUP_EMAIL` (opcional) |
 | 3 | **Repo en GitHub** | `github.com` (tu misma cuenta, un repo por cliente) | Código + `package.json` `name` |
 | 4 | **Proyecto en Vercel** | `vercel.com` | `VITE_SCRIPT_URL`, `VITE_TOKEN`, `VITE_BIZ_*`, `VITE_CATALOG`, `VITE_ADMIN_WHATSAPP` |
 | 5 | **Triggers de Apps Script** | Editor → ⏰ | Reportes diario/semanal/mensual/anual y respaldos |
@@ -65,10 +128,32 @@ requiere tocar el código.
 > `logo.png` en su repo. El favicon de la pestaña sí se pinta solo, con
 > `VITE_BIZ_EMOJI`.
 
-**Catálogo** (`src/catalogs.js`):
+**Catálogo — elige entre 8 categorías** (`src/catalogs.js`):
 
-- `VITE_CATALOG=unas` → usa el preset `unas`.
-- `VITE_DEFAULT_SERVICES='[…]'` → gana sobre `VITE_CATALOG`.
+| Categoría (`VITE_CATALOG`) | Tipo de negocio | Serv. |
+|---|---|:---:|
+| `cejas` ← *defecto* | Cejas y pestañas | 9 |
+| `unas` | Spa de uñas / nail bar | 11 |
+| `peluqueria` | Peluquería dama y caballero | 10 |
+| `barberia` | Barbería (corte masculino) | 10 |
+| `depilacion` | Depilación con cera | 10 |
+| `masajes` | Spa de masajes | 9 |
+| `estetica` | Estética facial | 9 |
+| `maquillaje` | Maquillaje profesional | 9 |
+
+**Paso a paso (Vercel → Environment Variables):**
+
+1. **Settings → Environment Variables** → `VITE_CATALOG` → valor: la
+   clave exacta, en **minúsculas y sin tildes** (p. ej. `barberia`).
+2. **Save** y luego **Deployments → ⋮ → Redeploy**: las `VITE_*` solo
+   se aplican al compilar.
+3. Abre la app **sin datos** (o haz un restablecimiento) y comprueba en
+   ✂️ Servicios que aparecen los servicios de esa categoría.
+
+Reglas que ya vienen resueltas:
+
+- `VITE_DEFAULT_SERVICES='[…]'` → gana sobre `VITE_CATALOG`; úsalo si el
+  negocio no encaja en ninguna de las 8.
 - JSON roto o clave desconocida → **cae al preset `cejas` y la app arranca
   igual** (decisión de diseño: una variable mal escrita nunca tumbe el
   despliegue).
@@ -109,7 +194,8 @@ cliente:
    | Propiedad | Valor | Nota |
    |---|---|---|
    | `SB_SYNC_TOKEN` | Token **nuevo**, largo y aleatorio | **Nunca** reutilices el de otro cliente; debe coincidir con `VITE_TOKEN` |
-   | `SB_AUTHORIZED_EMAIL` | Correo **del cliente** | Obligatoria: a él llegan reportes, respaldos y códigos |
+   | `SB_AUTHORIZED_EMAIL` | Correo **del cliente** | Obligatoria: a él llegan los códigos de recuperación y los reportes |
+   | `SB_BACKUP_EMAIL` | Otro correo (opcional) | Si el cliente quiere la **copia semanal de la hoja** en otro sitio (gestoría, correo personal…). Vacío → el respaldo va a `SB_AUTHORIZED_EMAIL` |
    | `SB_BIZ_NAME` | Nombre del negocio | Es el que firma los correos. Si falta → «SZ» |
 
 5. **Desplegar como Web App** (*Implementar → Nueva implementación*):
@@ -309,8 +395,9 @@ fase D.
    de cliente los rompe, el cambio estaba mal hecho.
 3. **El token del cliente en el código.** Vive en `SB_SYNC_TOKEN`
    (servidor) y `VITE_TOKEN` (Vercel). El repo es público.
-4. **`SB_AUTHORIZED_EMAIL` con el correo de otro cliente.** Los reportes y
-   los respaldos de uno no pueden llegar a la bandeja de otro.
+4. **`SB_AUTHORIZED_EMAIL` (o `SB_BACKUP_EMAIL`) con el correo de otro
+   cliente.** Los reportes, los códigos y los respaldos de uno no pueden
+   llegar a la bandeja de otro.
 5. **No pegues un `Code.gs` de otro cliente encima.** Usa el del repo
    (es único y no lleva datos); solo cambian las propiedades.
 6. **No arrastres personalizaciones de un cliente a otro.** Si a SZ le
@@ -374,7 +461,7 @@ problemas) y [`MANUAL_TECNICO.md`](MANUAL_TECNICO.md) sección F.
 [ ] Cuenta de Google del cliente (decidida y con acceso de soporte)
 [ ] Spreadsheet creado + Apps Script vinculado + manifiesto pegado
 [ ] Code.gs pegado y desplegado como Web App (URL …/exec copiada)
-[ ] Propiedades: SB_SYNC_TOKEN (nueva) · SB_AUTHORIZED_EMAIL · SB_BIZ_NAME
+[ ] Propiedades: SB_SYNC_TOKEN (nueva) · SB_AUTHORIZED_EMAIL · SB_BIZ_NAME · SB_BACKUP_EMAIL (opcional)
 [ ] Triggers: reportes + backup diario + correo semanal
 [ ] Repo nuevo en GitHub (historia propia, `madre` como remote de solo lectura)
 [ ] `package.json` → "name" + `CUSTOMIZACIONES.md` creado
@@ -443,7 +530,8 @@ git --no-pager log --oneline -1    # el sha de la plantilla
 5. ⚙️ → Propiedades del proyecto → **Propiedades de script** — *antes* de
    implementar:
    | `SB_SYNC_TOKEN` | token nuevo: `(New-Guid).ToString('N') + (New-Guid).ToString('N')` |
-   | `SB_AUTHORIZED_EMAIL` | correo del dueño |
+   | `SB_AUTHORIZED_EMAIL` | correo del dueño (códigos y reportes) |
+   | `SB_BACKUP_EMAIL` | otro correo si la copia semanal va a otro sitio (opcional) |
    | `SB_BIZ_NAME` | nombre del negocio (firma los correos) |
 6. **Implementar → Nueva implementación → Aplicación web** →
    *Ejecutar como:* **Yo** · *Quién tiene acceso:* **Cualquier usuario** →
@@ -456,7 +544,8 @@ git --no-pager log --oneline -1    # el sha de la plantilla
 1. *New Project* → importa el repo.
 2. *Environment Variables* → crear: `VITE_SCRIPT_URL` (URL del A.2.6),
    `VITE_TOKEN` (**idéntica** a `SB_SYNC_TOKEN`), `VITE_BIZ_NAME`,
-   `VITE_CATALOG`, `VITE_BIZ_EMOJI`, `VITE_BIZ_SUBTITLE`,
+   `VITE_CATALOG` (**una de las 8 categorías** de §2; si se omite, queda
+   `cejas`), `VITE_BIZ_EMOJI`, `VITE_BIZ_SUBTITLE`,
    `VITE_ADMIN_WHATSAPP` y — si hay logo — `VITE_BIZ_LOGO`.
 3. *Build Settings* lo deja Vercel: Vite, `npm run build`, salida `dist`.
 4. **Deploy**.
