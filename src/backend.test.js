@@ -606,8 +606,13 @@ const rawGet = (g, token) =>
   JSON.parse(g.call('doGet', { parameter: token === undefined ? {} : { token } }).json)
 
 // Instantánea de TODAS las hojas: detecta cualquier escritura.
+// OJO: initSheets crea la hoja 'Config' (en el mock: extra_Config) bajo
+// demanda en el primer GET/POST; una hoja RECIÉN creada y vacía no es
+// una escritura de datos, así que se omite para no confundir ambas cosas.
 const sheetSnapshot = (ss) => JSON.stringify(
-  Object.keys(ss._sheets).sort().map(k => [k, ss._sheets[k]._rows()])
+  Object.keys(ss._sheets).sort()
+    .filter(k => !(k === 'extra_Config' && ss._sheets[k]._rows().length === 0))
+    .map(k => [k, ss._sheets[k]._rows()])
 )
 
 // Filas de una hoja sin la cabecera.
@@ -834,8 +839,12 @@ describe('Code.gs — restablecimiento protegido', () => {
   })
 
   // Instantánea de TODAS las hojas: detecta cualquier escritura.
+  // Igual que `sheetSnapshot`: omite la hoja 'Config' recién creada y
+  // vacía por initSheets (crearla no es escribir datos).
   const snapshot = () => JSON.stringify(
-    Object.keys(env.ss._sheets).sort().map(k => [k, env.ss._sheets[k]._rows()])
+    Object.keys(env.ss._sheets).sort()
+      .filter(k => !(k === 'extra_Config' && env.ss._sheets[k]._rows().length === 0))
+      .map(k => [k, env.ss._sheets[k]._rows()])
   )
 
   // Cita futura que usa s1 y, opcionalmente, un evento de Calendar.
@@ -1719,12 +1728,13 @@ describe('TEST-01 — doPost: validaciones y operaciones', () => {
     expect(dataRows(env.ss, 'expenses')).toHaveLength(0)
   })
 
-  it('doGet con token correcto devuelve las 5 colecciones', () => {
+  it('doGet con token correcto devuelve las 5 colecciones + config', () => {
     const out = rawGet(env.g, TOKEN)
     expect(out.ok).toBe(true)
     expect(Object.keys(out.data).sort())
-      .toEqual(['appointments', 'clients', 'expenses', 'priceHistory', 'services'])
+      .toEqual(['appointments', 'clients', 'config', 'expenses', 'priceHistory', 'services'])
     expect(out.data.services.map(s => s.id).sort()).toEqual(['s1', 's2'])
+    expect(out.data.config).toEqual({ openingBalance: 0 })   // hoja vacía → 0
   })
 
   it('doGet con token incorrecto o ausente → "No autorizado"', () => {
@@ -1787,24 +1797,102 @@ describe('TEST-01 — doPost: validaciones y operaciones', () => {
 
   it('initSheets solo crea las hojas que faltan', () => {
     const creadas = []
-    const nombres = ['Clientes', 'Servicios', 'Citas', 'Gastos', 'HistorialPrecios']
+    const nombres = ['Clientes', 'Servicios', 'Citas', 'Gastos', 'HistorialPrecios', 'Config']
     const fake = {
       getSheets: () => nombres.slice(0, 3).map(n => ({ getName: () => n })),
       insertSheet: (n) => { creadas.push(n) },
     }
     env.g.call('initSheets', fake)
-    expect(creadas).toEqual(['Gastos', 'HistorialPrecios'])
+    expect(creadas).toEqual(['Gastos', 'HistorialPrecios', 'Config'])
   })
 
   it('initSheets no hace nada cuando ya existen todas', () => {
     const creadas = []
-    const nombres = ['Clientes', 'Servicios', 'Citas', 'Gastos', 'HistorialPrecios']
+    const nombres = ['Clientes', 'Servicios', 'Citas', 'Gastos', 'HistorialPrecios', 'Config']
     const fake = {
       getSheets: () => nombres.map(n => ({ getName: () => n })),
       insertSheet: (n) => { creadas.push(n) },
     }
     env.g.call('initSheets', fake)
     expect(creadas).toEqual([])
+  })
+})
+
+/* ══════════════════════════════════════════════════════════════
+   Hoja Config — saldo inicial persistido en Google Sheets
+   (Petición de la dueña: cambiarlo en un dispositivo debe verse en
+   todos, y también se puede editar la celda directo en la hoja).
+══════════════════════════════════════════════════════════════ */
+describe('Code.gs — hoja Config (saldo inicial sincronizado)', () => {
+  let env
+  beforeEach(() => { env = makeEnv() })
+
+  // La hoja 'Config' la crea initSheets en el primer GET/POST; el mock
+  // la registra como 'extra_Config' pero getSheetByName la encuentra.
+  const cfgRows = (ss) => {
+    const sh = ss.getSheetByName('Config')
+    return sh ? sh._rows() : []
+  }
+
+  it('doGet devuelve openingBalance 0 con la hoja vacía (y la crea con cabecera)', () => {
+    const out = rawGet(env.g, TOKEN)
+    expect(out.ok).toBe(true)
+    expect(out.data.config).toEqual({ openingBalance: 0 })
+    expect(cfgRows(env.ss)[0]).toEqual(['Clave', 'Valor', 'Actualizado'])
+  })
+
+  it('guardar config escribe en la hoja y el siguiente doGet lo relee', () => {
+    // Payload SOLO con config → no es destructivo (no pide grant) y
+    // responde saved igual que cualquier sync normal.
+    const r = post(env.g, { config: { openingBalance: 500000 } })
+    expect(r.ok).toBe(true)
+    expect(r.data).toEqual({ saved: true, calResult: null })
+
+    const rows = cfgRows(env.ss)
+    expect(rows).toHaveLength(2)
+    expect(rows[1][0]).toBe('opening_balance')
+    expect(rows[1][1]).toBe(500000)
+    expect(String(rows[1][2])).toMatch(/^\d{4}-\d{2}-\d{2}T/)   // Actualizado
+    expect(rawGet(env.g, TOKEN).data.config).toEqual({ openingBalance: 500000 })
+  })
+
+  it('un segundo guardado ACTUALIZA la fila (sin duplicarla)', () => {
+    post(env.g, { config: { openingBalance: 500000 } })
+    post(env.g, { config: { openingBalance: 750000 } })
+    expect(cfgRows(env.ss)).toHaveLength(2)
+    expect(rawGet(env.g, TOKEN).data.config.openingBalance).toBe(750000)
+  })
+
+  it('la edición directa en la hoja (celda a mano) la relee el próximo doGet', () => {
+    post(env.g, { config: { openingBalance: 500000 } })
+    cfgRows(env.ss)[1][1] = '600.000'          // la dueña teclea en Google Sheets
+    expect(rawGet(env.g, TOKEN).data.config.openingBalance).toBe(600000)
+  })
+
+  it('sanea valores: negativos y basura → 0; formatos de miles → número', () => {
+    post(env.g, { config: { openingBalance: -500 } })
+    expect(rawGet(env.g, TOKEN).data.config.openingBalance).toBe(0)
+
+    post(env.g, { config: { openingBalance: '1.234.567' } })
+    expect(rawGet(env.g, TOKEN).data.config.openingBalance).toBe(1234567)
+
+    post(env.g, { config: { openingBalance: 'basura' } })
+    expect(rawGet(env.g, TOKEN).data.config.openingBalance).toBe(0)
+  })
+
+  it('resetData SÍ borra la hoja Config (resetear es eliminar todo)', () => {
+    post(env.g, { config: { openingBalance: 500000 } })
+    const grant = recoveryGrant(env.g)
+    const r = post(env.g, {
+      action: 'resetData', clients: [], appointments: [], expenses: [],
+      services: [{ id: 'n1', name: 'Nuevo', price: '1000', duration: '30' }],
+      resetPriceHistory: true, ...grant,
+    })
+    expect(r.ok).toBe(true)
+    // Solo queda la cabecera: la clave opening_balance desapareció.
+    expect(cfgRows(env.ss)).toEqual([['Clave', 'Valor', 'Actualizado']])
+    // El próximo refresco lo devuelve en 0: el saldo inicial se fue.
+    expect(rawGet(env.g, TOKEN).data.config.openingBalance).toBe(0)
   })
 })
 
@@ -2492,7 +2580,14 @@ describe('REPORTE: el correo del trigger = el WhatsApp del admin', () => {
     expect(body).toContain('• Domicilios: *$10.000*')
     expect(body).toContain('• Total recibido: *$540.000*')
     expect(body).toContain('   - Efectivo: *$360.000*')
-    expect(body).toContain('   - Transferencia: *$180.000*')
+    // La cita antigua en «Transferencia» sigue contando (dato heredado)…
+    expect(body).toContain('   - · Transferencia (dato anterior): *$180.000*')
+    // …y las transferencias se resumen en SU renglón.
+    expect(body).toContain('   - Transferencias: *$180.000*')
+    // Los cuatro métodos actuales salen siempre, aunque estén en $0.
+    expect(body).toContain('   - Nequi: *$0*')
+    expect(body).toContain('   - Daviplata: *$0*')
+    expect(body).toContain('   - Bancolombia: *$0*')
     // Proyectado = completadas + pendiente ($130.000); la no asistida no suma.
     expect(body).toContain('• Proyectado: *$670.000*')
     expect(body).toContain('💳 *Neto*: *$510.000*')    // 540.000 − 30.000
@@ -2683,9 +2778,15 @@ describe('REPORTE: el correo lleva el Excel adjunto', () => {
     expect(f['14,2']).toBe('=B12+B13')             // TOTAL INGRESOS
     expect(f['15,2']).toBe('=Movimientos!I7')      // Gastos del período
     expect(f['16,2']).toBe('=B14-B15')             // NETO
+    // Los 4 métodos actuales + el heredado «Transferencia» (filas 21–25),
+    // el total de transferencias (26) y «Sin registrar» (27).
     expect(f['21,2']).toBe('=SUMIF(Movimientos!J2:J5,"Efectivo",Movimientos!H2:H5)')
-    expect(f['22,2']).toBe('=SUMIF(Movimientos!J2:J5,"Transferencia",Movimientos!H2:H5)')
-    expect(f['23,2']).toBe('=SUMIF(Movimientos!J2:J5,"Sin registrar",Movimientos!H2:H5)')
+    expect(f['22,2']).toBe('=SUMIF(Movimientos!J2:J5,"Nequi",Movimientos!H2:H5)')
+    expect(f['23,2']).toBe('=SUMIF(Movimientos!J2:J5,"Daviplata",Movimientos!H2:H5)')
+    expect(f['24,2']).toBe('=SUMIF(Movimientos!J2:J5,"Bancolombia",Movimientos!H2:H5)')
+    expect(f['25,2']).toBe('=SUMIF(Movimientos!J2:J5,"Transferencia",Movimientos!H2:H5)')
+    expect(f['26,2']).toBe('=B22+B23+B24+B25')
+    expect(f['27,2']).toBe('=SUMIF(Movimientos!J2:J5,"Sin registrar",Movimientos!H2:H5)')
   })
 
   it('Citas trae las del período (completadas y pendientes) con su estado', () => {
@@ -3143,7 +3244,9 @@ describe('Utilities.formatDate del sandbox', () => {
   })
 
   it('los literales entrecomillados quedan intactos', () => {
-    // Es el patrón de _fmtDayLabel: el `d` de «de» NO es el día.
+    // Patrón histórico de _fmtDayLabel (hoy el label se arma con tablas
+    // propias, pero el mock sigue soportando literales entrecomillados):
+    // el `d` de «de» NO es el día.
     expect(formatearFecha(d, "EEE, d 'de' MMM yyyy")).toBe('lun, 5 de ene 2026')
   })
 
@@ -3152,5 +3255,32 @@ describe('Utilities.formatDate del sandbox', () => {
     expect(formatearFecha(d, 'MMM')).toBe('ene')
     expect(formatearFecha(d, 'dd')).toBe('05')
     expect(formatearFecha(d, 'd')).toBe('5')
+  })
+})
+
+/* ══════════════════════════════════════════════════════════════
+   Día del reporte en ESPAÑOL — _fmtDayLabel
+   ────────────────────────────────────────────────────────────
+   Bug real: Utilities.formatDate formatea con la JVM locale
+   por defecto (en-US), así que en producción el asunto salía
+   «[REPORTE DIARIO] Actividad - Thu, 15 de Oct 2026». El mock
+   del sandbox maquillaba el español y no lo delataba; por eso
+   estas pruebas llaman _fmtDayLabel y el asunto DIRECTAMENTE.
+   ══════════════════════════════════════════════════════════════ */
+describe('Etiqueta del reporte en español (_fmtDayLabel)', () => {
+  let env
+  beforeEach(() => { env = makeEnv() })
+
+  it('arma «lun, 5 de ene 2026» sin depender del locale de la JVM', () => {
+    expect(env.g.call('_fmtDayLabel', '2026-01-05')).toBe('lun, 5 de ene 2026')   // lunes
+    expect(env.g.call('_fmtDayLabel', '2026-10-15')).toBe('jue, 15 de oct 2026')  // jueves
+    expect(env.g.call('_fmtDayLabel', 'basura')).toBe('basura')                   // fallback
+  })
+
+  it('el asunto del reporte diario lleva el día en español', () => {
+    env.g.call('_sendReportEmail', { type: 'day', day: '2026-01-05' }, 'DIARIO')
+    const m = lastMail(env.store)
+    expect(m.subject).toContain('[REPORTE DIARIO] Actividad - lun, 5 de ene 2026')
+    expect(m.subject).not.toMatch(/Mon|Jan/)
   })
 })

@@ -8,7 +8,7 @@ aplica.
 >
 > - ✅ **Verificado en código** — se leyó la implementación en este repositorio.
 > - 🧪 **Verificado en pruebas automatizadas** — existe un test que lo cubre
->   (317 pruebas, ejecutadas y en verde en esta ronda de documentación).
+>   (339 pruebas, ejecutadas y en verde en esta ronda de documentación).
 > - 🔎 **No verificado en producción** — la regla existe en el código pero no
 >   se probó en el entorno real de Google/Vercel.
 
@@ -41,18 +41,18 @@ aplica.
 ```mermaid
 flowchart TD
     subgraph Cliente["Navegador (celular o PC)"]
-        UI["src/App.jsx — UI React (~5.120 líneas)"]
-        HLP["src/helpers.js — lógica pura (~857 líneas)"]
+        UI["src/App.jsx — UI React (~5.370 líneas)"]
+        HLP["src/helpers.js — lógica pura (~909 líneas)"]
         API["src/api.js — transporte HTTP"]
-        LS[("localStorage<br/>sb_c · sb_s · sb_a · sb_e<br/>sz_palette · sz_hcats")]
+        LS[("localStorage<br/>sb_c · sb_s · sb_a · sb_e<br/>sz_palette · sz_hcats · sz_opening_balance")]
         UI --> HLP
         UI --> API
         UI <--> LS
     end
 
     subgraph Google["Cuenta de Google"]
-        GAS["apps-script/Code.gs<br/>Web App (~2.072 líneas)"]
-        SH[("Google Sheets — 5 hojas")]
+        GAS["apps-script/Code.gs<br/>Web App (~2.235 líneas)"]
+        SH[("Google Sheets — 6 hojas")]
         CAL["Google Calendar"]
         GMAIL["GmailApp<br/>reportes · respaldos · códigos"]
         DRV["Google Drive<br/>BACKUP-PROYECTO/Backups"]
@@ -177,44 +177,46 @@ App → saveData(payload) → call(URL, {method:'POST', body:{token, ...payload}
 | Archivo | Líneas | Responsabilidad | ¿Testeado? |
 |---|---:|---|:---:|
 | `src/main.jsx` | 10 | Punto de entrada de React (`StrictMode`) | — |
-| `src/App.jsx` | 5.120 | **Toda la UI** + estado global + orquestación de guardado | — (componentes no unit-testeados) |
-| `src/helpers.js` | 857 | **Lógica pura**: fechas, slots, duraciones, estados, finanzas, reportes, servicio a domicilio, clasificación de citas | ✅ 165 tests |
+| `src/App.jsx` | 5.502 | **Toda la UI** + estado global + orquestación de guardado | — (componentes no unit-testeados) |
+| `src/helpers.js` | 909 | **Lógica pura**: fechas, slots, duraciones, estados, finanzas, reportes, servicio a domicilio, clasificación de citas | ✅ 171 tests |
 | `src/api.js` | 83 | Transporte HTTP y mensajes de error | ✅ 7 tests |
-| `apps-script/Code.gs` | 2.072 | Backend completo: API, seguridad, Sheets, Calendar, reportes, respaldos | ✅ 127 tests (en sandbox `node:vm`) |
-| `src/backend.test.js` | 2.985 | Ejecuta `Code.gs` **real** con mocks de Apps Script | — |
-| `src/helpers.test.js` | 1.664 | Pruebas unitarias de `helpers.js` | — |
+| `apps-script/Code.gs` | 2.249 | Backend completo: API, seguridad, Sheets, Calendar, reportes, respaldos | ✅ 144 tests (en sandbox `node:vm`) |
+| `src/backend.test.js` | 3.286 | Ejecuta `Code.gs` **real** con mocks de Apps Script | — |
+| `src/helpers.test.js` | 1.767 | Pruebas unitarias de `helpers.js` | — |
 | `src/api.test.js` | 108 | Pruebas del transporte | — |
+| `src/excel.test.js` | 88 | Pruebas del libro Excel de reportes y respaldos (`buildReportWorkbook`) | — |
 
 ### 3.1 Componentes de `src/App.jsx`
 
 | Componente | Línea | Responsabilidad |
 |---|---:|---|
-| `Modal` | 595 | Diálogo de confirmación genérico |
-| `PayModal` | 611 | Selección de método de pago al completar |
-| `NavIcon` | 633 | Iconos SVG de la navegación |
-| `SyncBadge` | 704 | Indicador de sincronización |
-| `Pager` | 753 | Paginación plana **‹ Ant. / Sig. ›** |
-| `CirclePager` | 790 | Paginación anidada con el **número en un círculo** |
-| `GS` | 829 | **Bloque `<style>` global** (tema, modo oscuro, responsive) |
-| `Dashboard` | 1445 | Panel principal |
-| `MonthlyIncomeState` | 1670 | Estado de ingresos por mes |
-| `MonthlyBalance` | 1728 | Balance mensual |
-| `ApptsTab` | 1804 | Lista de citas en acordeones |
-| `ApptDetail` | 1974 | Detalle de una cita |
-| `ApptCard` | 2087 | Tarjeta de cita reutilizable |
-| `EditAppt` | 2172 | Formulario de edición |
-| `NewWizard` | 2473 | Asistente de nueva cita (4 pasos) |
-| `ClientsTab` | 2802 | Clientas y búsqueda |
-| `ServicesTab` | 2903 | Catálogo de servicios |
-| `FinancesTab` | 2982 | Finanzas (tarjetas y secciones) |
-| `ClientHistory` | 3171 | Historial de clienta |
-| `MonthComparison` | 3311 | Comparación de meses |
-| `TopServices` | 3442 | Top servicios |
-| `ReportTab` | 3606 | Reportes y exportación |
-| `IncomeDetail` | 4050 | Detalle de ingresos |
-| `SettingsTab` | 4180 | Ajustes y restablecimiento |
-| `ExpenseDetail` | 4427 | Detalle de gastos |
-| `CalendarView` | 4591 | Vista de calendario |
+| `Modal` | 754 | Diálogo de confirmación genérico |
+| `PayIcon` | 777 | Icono del método de pago: logo en `public/img/pagos/` (Nequi/Daviplata/Bancolombia), emoji (Efectivo sin icono, Transferencia 🏦) o `💳` de respaldo |
+| `PayModal` | 785 | Selección de método de pago al completar |
+| `NavIcon` | 806 | Iconos SVG de la navegación |
+| `SyncBadge` | 877 | Indicador de sincronización |
+| `Pager` | 930 | Paginación plana **‹ Ant. / Sig. ›** |
+| `CirclePager` | 967 | Paginación anidada con el **número en un círculo** |
+| `GS` | 1006 | **Bloque `<style>` global** (tema, modo oscuro, responsive) |
+| `Dashboard` | 1623 | Panel principal; «Citas de Hoy» muestra ✓ (completada) o píldora «✗ No asistió» (`apptStatus`) |
+| `MonthlyIncomeState` | 1862 | Estado de ingresos por mes |
+| `MonthlyBalance` | 1920 | Balance mensual |
+| `ApptsTab` | 1996 | Lista de citas en acordeones |
+| `ApptDetail` | 2175 | Detalle de una cita |
+| `ApptCard` | 2288 | Tarjeta de cita reutilizable |
+| `EditAppt` | 2373 | Formulario de edición |
+| `NewWizard` | 2674 | Asistente de nueva cita (4 pasos) |
+| `ClientsTab` | 3016 | Clientas y búsqueda |
+| `ServicesTab` | 3117 | Catálogo de servicios |
+| `FinancesTab` | 3196 | Finanzas (tarjetas y secciones) |
+| `ClientHistory` | 3385 | Historial de clienta |
+| `MonthComparison` | 3538 | Comparación de meses |
+| `TopServices` | 3669 | Top servicios |
+| `ReportTab` | 3833 | Reportes y exportación |
+| `IncomeDetail` | 4199 | Detalle de ingresos |
+| `SettingsTab` | 4471 | Ajustes y restablecimiento |
+| `ExpenseDetail` | 4809 | Detalle de gastos |
+| `CalendarView` | 4973 | Vista de calendario |
 
 > 📌 **Nota de diseño:** `App.jsx` concentra la UI en un archivo único
 > **a propósito** (documentado en el `README.md`). La lógica reutilizable vive
@@ -226,8 +228,10 @@ App → saveData(payload) → call(URL, {method:'POST', body:{token, ...payload}
 
 ### 4.1 Definición canónica en el backend
 
-Están en `Code.gs` **líneas 19–39** (`SHEETS`, `JS_KEYS`, `HEADERS_ES`) y se
+Están en `Code.gs` **líneas 17–53** (`SHEETS`, `JS_KEYS`, `HEADERS_ES`) y se
 repiten en `helpers.js` (`DEFAULT_SERVICES`, `emptyState`). ✅
+La hoja **Config** (clave/valor) no está en `JS_KEYS`: la definen
+`CONFIG_OPENING_KEY` y `_readConfig` / `_writeConfig`. ✅
 
 #### `clients` → hoja **Clientes** (4 columnas)
 
@@ -270,7 +274,7 @@ repiten en `helpers.js` (`DEFAULT_SERVICES`, `emptyState`). ✅
 | `calendarEventId` | string | ID en Google Calendar |
 | `completed` | string | `true` / `false` / `noshow` |
 | `duration` | number | Duración total en minutos |
-| `paymentMethod` | string | `Efectivo` / `Transferencia` |
+| `paymentMethod` | string | `Efectivo` / `Nequi` / `Daviplata` / `Bancolombia` (`PAYMENT_METHODS`) · heredado `Transferencia` (solo lectura) |
 
 #### `expenses` → hoja **Gastos** (5 columnas)
 
@@ -279,6 +283,20 @@ repiten en `helpers.js` (`DEFAULT_SERVICES`, `emptyState`). ✅
 #### `priceHistory` → hoja **HistorialPrecios** (4 columnas)
 
 `serviceId` · `serviceName` · `price` · `changedAt`
+
+#### `config` → hoja **Config** (clave/valor, fuera de `JS_KEYS`)
+
+| Clave | Valor | Actualizado |
+|---|---|---|
+| `opening_balance` | Saldo inicial ≥ 0 (número) | ISO 8601 del último cambio |
+
+- `doGet` la devuelve como `data.config`; `doPost` la guarda con
+  `{config: {openingBalance}}`. Se lee/escribe **solo la fila de la clave**
+  (`_readConfig` / `_writeConfig`), así que **sí se puede editar a mano** en
+  el Google Sheet: el frontend la relee en cada refresco (≤30 s) y sincroniza
+  todos los dispositivos (localStorage solo queda como caché offline).
+  `_resetData` **sí** la vacía (resetear es eliminar todo): solo queda la
+  cabecera y el saldo inicial vuelve a 0. ✅
 
 ### 4.2 Reglas de snapshot
 
@@ -324,7 +342,9 @@ Aplica a cada campo numérico una **clausura de saneamiento**
 - Monto negativo o `NaN` → **`0`** (`clip0`, línea 2013; defensa en
   profundidad; la UI ya lo impide con `Math.max`)
 - `duration`: se recorta al rango **15–480** (`safeDuration`); vacío → `60`
-- `paymentMethod`: `in ('Efectivo','Transferencia')`, si no → `null`
+- `paymentMethod`: no se sanea aquí; el valor se normaliza al **leer** —
+  `payMethodOf` (`helpers.js`) devuelve `''` si no está en `PAYMENT_METHODS`,
+  y en el backend `_isPayMethod` → `'Sin registrar'`
 - `completed`: se normaliza a `'true' | 'false' | 'noshow'`
 - `servicePrices` (objeto `{id: precio}` serializado): cada precio se pasa
   por `clip0`
@@ -406,7 +426,7 @@ lo toca la operadora:
 
 | Acción | Dónde |
 |---|---|
-| ✓ **Completar** (elige Efectivo / Transferencia) | `App.jsx` 1881, 1889 |
+| ✓ **Completar** (elige Efectivo / Nequi / Daviplata / Bancolombia) | `App.jsx` 1881, 1889 |
 | ✗ **No asistió** | `App.jsx` 1881 |
 | Crear cita → `completed: false` | `NewWizard`, `App.jsx` 2591 |
 
@@ -530,13 +550,16 @@ allowDelete   = appt.completed === 'false'      →  else «Solo las citas pendi
 ### 8.2 Flujo de «Completar»
 
 ```
-«✓ Completar» → PayModal (Efectivo / Transferencia)
+«✓ Completar» → PayModal (Efectivo / Nequi / Daviplata / Bancolombia)
    → { completed:'true', paymentMethod }
    → saveData({ appointments })
 ```
 
-`paymentMethod` se valida en el backend contra `in ('Efectivo','Transferencia')`
-(`sanitizePayload`, `Code.gs` 2028). ✅ 🧪
+`paymentMethod` se normaliza al leer contra `PAYMENT_METHODS` +
+`LEGACY_PAYMENT_METHODS` (`_isPayMethod`, `Code.gs`; `payMethodOf`,
+`helpers.js`): un valor desconocido no cuenta como método, y
+`Transferencia` (heredado, retirado de la UI) sigue siendo válido para
+leer. ✅ 🧪 (paridad: `PAYMENT_METHODS` ≡ `PAY_METHODS`)
 
 ### 8.3 Flujo de «No asistió»
 
@@ -634,7 +657,7 @@ CSV **ambiguo**: un servicio puede llamarse
 >
 > Réplica obligatoria en **`Code.gs` → `_recoverSnapshotNames`** (ES5),
 > cubierta por el test de **paridad frontend↔backend**. Si se toca un lado
-> sin el otro, los 317 tests se caen.
+> sin el otro, los 339 tests se caen.
 
 ---
 
@@ -699,7 +722,7 @@ explícitamente:
 |---|---|---|
 | Búsqueda | `phoneMatch` (`helpers.js` 50) + `ClientsTab` (`App.jsx` 2829) | **Sufijo** del celular primero, luego **subcadena** del nombre |
 | Alta al agendar | `NewWizard` (`App.jsx` 2546) | Si el nombre no existe → se crea con `uid()` |
-| Historial | `ClientHistory` (3171) | Citas, montos, última visita |
+| Historial | `ClientHistory` (3385) | Citas, montos, última visita |
 | Reutilización | — | ⚠️ Si **2 clientas** comparten celular, **no** se fusionan |
 
 ### 11.2 Servicios
@@ -714,8 +737,23 @@ explícitamente:
 
 ### 11.3 Catálogo por defecto
 
-`DEFAULT_SERVICES` (`App.jsx` 226) trae **9 servicios precargados** con precio y
-duración, para que la app no arranque vacía.
+`DEFAULT_SERVICES` (`App.jsx` 237) **no está escrito en el código**: se
+resuelve en tiempo de compilación con `resolveCatalog()` (`src/catalogs.js`),
+que aplica este orden:
+
+1. **`VITE_DEFAULT_SERVICES`** → JSON con los servicios exactos del cliente.
+   Tiene prioridad absoluta.
+2. **`VITE_CATALOG`** → una de las **8 categorías** disponibles:
+   `cejas` (9 servicios, la lista histórica), `unas` (11), `peluqueria` (10),
+   `barberia` (10), `depilacion` (10), `masajes` (9), `estetica` (9) y
+   `maquillaje` (9).
+3. Clave desconocida, JSON roto o nada → `DEFAULT_CATALOG_KEY = 'cejas'`.
+
+La resolución **nunca lanza**: una variable mal escrita no puede impedir el
+arranque. La lista resultante se usa en el **primer arranque**
+(`App.jsx` 325 y 334) y al **restablecer** (434, 439 y 449); en cuanto hay
+datos, el catálogo real es el de Google Sheets. Detalle y paso a paso en
+[`MANUAL_TECNICO.md`](MANUAL_TECNICO.md) → **C.1.1**.
 
 ---
 
@@ -802,18 +840,23 @@ duración, para que la app no arranque vacía.
 
 ### 12.4 Reparto por método de pago
 
-No hay una función aparte: lo calcula **`periodLedger`** (`helpers.js`
-606–609) sobre sus `incomes`, con un `sumBy` local:
+No hay una función aparte: lo calcula **`periodLedger`** (`helpers.js`) sobre
+sus `incomes`, con un `sumBy` local por método:
 
 | Campo | Cómo sale |
 |---|---|
-| `totalCash` | `sumBy('Efectivo')` |
-| `totalTransfer` | `sumBy('Transferencia')` |
-| `totalNoMethod` | `totalIncome − totalCash − totalTransfer` — citas completadas **antes** de que existiera el método |
+| `byMethod` | objeto con los **4 actuales** + el heredado `Transferencia` (`READABLE_PAYMENT_METHODS`), siempre presente aunque sea `$0` |
+| `totalCash` | `byMethod.Efectivo` (compatibilidad con lecturas previas) |
+| `totalTransfer` | **total de transferencias** = Nequi + Daviplata + Bancolombia + las heredadas en `Transferencia` |
+| `totalKnown` | suma de `byMethod` |
+| `totalNoMethod` | `totalIncome − totalKnown` — citas completadas **antes** de que existiera el método (o con método vacío) |
 
-En el reporte se pinta como `- Efectivo: $…` / `- Transferencia: $…`
-(`reportLines`, 723–724) y en el Excel como `SUMIF` sobre la columna
-`Movimientos!J`. 🧪
+En el reporte se pintan **los 4 métodos siempre** (`- Efectivo: $…` …
+`- Bancolombia: $…`), luego el renglón heredado **solo si `> 0`**
+(`- · Transferencia (dato anterior): $…`) y después el total
+**`- Transferencias: $…`**; más «Sin método» si `totalNoMethod > 0`
+(`reportLines`); en el Excel, `SUMIF` sobre la columna `Movimientos!J`
+(fila por método) y `=B+B+B+B` para **TRANSFERENCIAS (total)**. 🧪
 
 > 📌 **Corregido:** aquí se citaba antes una función `splitPaid(appts)` que
 > **no existe** en `helpers.js` (ni existió en el repositorio).
@@ -831,6 +874,7 @@ Hay **dos familias** de control, definidas en `App.jsx` junto a
 | `DAY_PAGE_SIZE` | 7 | **Días** de «Detalle Gastos» y «Detalle Ingresos» |
 | `ITEM_PAGE_SIZE` | 5 | **Gastos / citas dentro de cada día** |
 | `CATEGORY_PAGE_SIZE` | 10 | Gastos de **una categoría** desplegada en «Detalle Gastos» |
+| `PAST_APPT_PAGE_SIZE` | 20 | Grupo **PASADAS** de la pestaña Citas (solo ese grupo) |
 
 #### 12.5.1 Familia PLANA — `Pager` (‹ Ant. / Sig. ›)
 
@@ -840,7 +884,7 @@ Hay **dos familias** de control, definidas en `App.jsx` junto a
 | **🧾 Movimientos del período** | `ReportTab` | cambiar de **período** (`mode`, `day`, `month`, `year`, `from`, `to`) o de **filtro** (`mvFilter`) |
 | **💚 Detalle Ingresos** — lista de **días** | `IncomeDetail` | cambiar de **mes** o de **filtro** (`filter`: Todo / Recibido / Pendiente / No asistió) |
 | **📤 Detalle Gastos** — lista de **días** | `ExpenseDetail` | cambiar de **mes** |
-| **🗓️ Todas las citas** (historial de cliente) | `ClientHistory` | cambiar de **cliente** — el componente se desmonta y `apptPage` vuelve a 1 (no hace falta `useEffect`, `App.jsx` 3174–3178) |
+| **🗓️ Todas las citas** (historial de cliente) | `ClientHistory` | cambiar de **cliente** — el componente se desmonta y `apptPage` vuelve a 1 (no hace falta `useEffect`, `App.jsx` 3388–3392) |
 
 **Reglas del control `Pager`:**
 
@@ -850,7 +894,7 @@ Hay **dos familias** de control, definidas en `App.jsx` junto a
 | Muestra el rango y la posición: `1–7 de 20 días · pág. 1 de 3` | `first`/`last` calculados sobre el total, **no** sobre la página |
 | El rango se **recorta siempre** dentro de `[1, pages]` | `Math.min(Math.max(1,page),pages)` — una lista que encoge nunca deja la vista vacía |
 | **‹ Ant.** deshabilitado en la primera página, **Sig. ›** en la última | `disabled` + opacidad 0,4 |
-| El estado lo lleva el **padre**, no el propio `Pager` | `expPage` (2992) / `apptPage` (3178) / `mvPage` (3639) / `incPage` (4058) / `dayPage` (4434) + `useEffect` de reinicio |
+| El estado lo lleva el **padre**, no el propio `Pager` | `expPage` (3206) / `apptPage` (3392) / `mvPage` (3866) / `incPage` (4207) / `dayPage` (4816) + `useEffect` de reinicio |
 | Acepta tamaño propio con `size` | `size={DAY_PAGE_SIZE}` (7) o `size={CLIENT_APPT_PAGE_SIZE}` (5) — sin `size` sigue en 10 |
 
 #### 12.5.2 Familia ANIDADA — `CirclePager` (número dentro de un círculo)
@@ -1034,6 +1078,10 @@ de formato **nunca** debe romper el envío. ✅
 > 📌 **Regla:** el texto del WhatsApp y el del correo deben ser **exactamente
 > el mismo**. `backend.test.js` importa `reportLines` del frontend y lo compara
 > con la salida de `_buildReport`. Cualquier divergencia **rompe la suite**. 🧪
+> Esto incluye los **cuatro renglones de método de pago** (`PAYMENT_METHODS`
+> ≡ `PAY_METHODS`, mismo orden, siempre visibles), el heredado
+> «· Transferencia (dato anterior)» (solo si `> 0`), el total
+> «Transferencias» y el de «Sin método».
 >
 > Las réplicas en `Code.gs` (`_groupExpenses`, `_topServicesByDemand`) están
 > comentadas como «MISMO orden y mismo criterio de desempate (por nombre, SIN
@@ -1066,6 +1114,14 @@ El token **no basta** para destructivos. Se exige un **grant de un solo uso**.
 | 1. Pedir código | `_requestResetCode` | 296 | Rate-limit: **3 envíos/hora** → si se agotan, bloqueo de **30 min**. Código de **8 caracteres** (`A-Z`, `2-9`, sin `0/O/I/1`). Vigencia **15 min**. Guarda **solo el hash**. Se envía **exclusivamente** al correo autorizado. **La respuesta siempre es idéntica** (no revela si el correo existe o si estás bloqueado). |
 | 2. Verificar código | `_verifyResetCode` | 418 | Normaliza (quita espacios/saltos, mayúsculas) → compara **hashes** con comparación en **tiempo lineal**. Máx. **5 intentos**. **Un solo uso**. Si es válido → emite `grantId` + `grantSecret`, vigencia **10 min**, guardado **solo como hash**. |
 | 3. Ejecutar | `_resetData` | 472 | `_checkResetAuth` → `_consumeGrant` (273): exige el grant y lo **consume antes de escribir nada**. No se puede repetir. |
+
+> 📦 **Respaldo previo (solo UI):** la pantalla de advertencia del reset
+> ofrece **«📥 Descargar Excel de respaldo»** (`exportBackupXlsx` →
+> `buildReportWorkbook`, `App.jsx`) — el **mismo informe** que los reportes
+> (Resumen / Movimientos / Citas) pero con el **histórico completo**, más la
+> hoja **Clientes**, con fecha `respaldo_YYYY-MM-DD.xlsx`. Es una red de
+> seguridad del cliente, **no** cambia el flujo de autorización (el código
+> por correo sigue intacto).
 
 ### 14.3 ¿Cómo detecta el backend una operación destructiva?
 
@@ -1145,9 +1201,14 @@ que ve la operadora:
    claves de `localStorage` (`App.jsx` 326–330): `sb_c`, `sb_s`, `sb_a`, `sb_e`.
 2. En la parte superior aparece **`⚠️ Modo sin conexión — <mensaje>`**
    (`App.jsx` 562) y el `SyncBadge` (711) pasa a **`⚠️`**.
-3. **No hay cola de reintentos.** `sync` devuelve `null` (387): el cambio
-   queda solo en pantalla + `localStorage` y **no se vuelve a enviar**. Se
-   recupera solo cuando el próximo `refresh` (cada 30 s) o una recarga
+3. **No hay cola automática de reintentos**, pero el fallo **sí tiene aviso y
+   reintento manual**: si `sync` falla, aparece la franja roja
+   **«⚠️ No se pudo guardar»** con botón **«↻ Reintentar guardar»**
+   (`saveFailed`/`failedSaveRef`, `App.jsx`), que reenvía `failedSaveRef.current`
+   **sin** re-aplicar cambios optimistas. Mientras ese aviso esté activo,
+   `refresh()` **no** reemplaza el estado local (no pisa la mutación pendiente)
+   ni `setOpeningBalance`. El cambio queda también en `localStorage`; si no se
+   reintenta, se recupera solo cuando un `refresh` posterior o una recarga
    vuelven a traer la hoja.
    - **Excepción: Calendar.** Ahí sí hay reintento **manual** —
      `retryCalendar` (`App.jsx` 2336) con su botón (2454–2455), para el
@@ -1169,7 +1230,9 @@ setState(nuevo) + localStorage  →  saveData()
 Los llamadores **abortan** al recibir `null` — `deleteAppt` no toca Calendar,
 `EditAppt` no actualiza el evento, etc. — pero **la pantalla conserva el
 cambio hasta el próximo `refresh`**, que ocurre como máximo **30 s
-después** (o al recargar la pestaña). 🧪
+después** (o al recargar la pestaña). Mientras tanto, la **franja roja con
+«↻ Reintentar guardar»** (§15.2) deja claro que el cambio **no** está en el
+servidor y permite reenviarlo a mano. 🧪
 
 > 📌 Esto es deliberado: el fallo pudo ser de **transporte** con el servidor
 > ya escrito. Revertir a ciegas dejaría la pantalla en desacuerdo con la
@@ -1210,12 +1273,12 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | 5 | **El reloj de la app** (agrupar por pasado/hoy, marcar horas vencidas) solo corre si el navegador está abierto | `apptGroup` / `apptLife`, `helpers.js` 231, 453 |
 | 6 | **`writeSheet` borra ediciones manuales** de la hoja | `Code.gs` 1983 |
 | 7 | ~~Destinatario de reportes hardcodeado~~ → **CORREGIDO**: los tres envíos leen `_authorizedEmail()` / `SB_AUTHORIZED_EMAIL` | `Code.gs` 185 |
-| 8 | **El guardado fallido no revierte la pantalla** de inmediato: espera al próximo polling (≤30 s) | `sync`, `App.jsx` 385–388 |
+| 8 | **El guardado fallido no revierte la pantalla** de inmediato: espera al próximo polling (≤30 s). **Mitigado** con la franja roja + «↻ Reintentar guardar» y con `refresh()` protegido mientras el aviso esté activo | `sync`, `App.jsx` 385–388, 623–631 |
 | 9 | **Eventos de Calendar no se respaldan** | — |
 | 10 | **Dos clientas con el mismo celular no se fusionan** | — |
 | 11 | **Lógica duplicada** frontend ↔ backend (revelada por las pruebas de paridad) | `helpers.js` / `Code.gs` |
 | 12 | **Los `VITE_*` requieren rebuild** — no cambian en caliente | Vite |
-| 13 | **`App.jsx` es monolítico** (~5.120 líneas) — decisión deliberada, documentada | `App.jsx` |
+| 13 | **`App.jsx` es monolítico** (~5.500 líneas) — decisión deliberada, documentada | `App.jsx` |
 | 14 | ~~`VITE_BIZ_SUBTITLE` no llegaba al `<title>` de la pestaña~~ → **CORREGIDO**: había **dos** `useEffect` de branding y el segundo (`App.jsx` 341–351, deps `[]`) pisaba al primero (293–306). React ejecuta los efectos en orden de declaración, así que ganaba el segundo y se perdía el subtítulo — **solo en la pestaña**, porque en el encabezado (533) sí se veía, y por eso el fallo pasaba inadvertido. Ahora **solo existe el de 293–306**, único escritor del `document.title` (294, formato `NOMBRE · SUBTITULO`), del favicon (297–299) y del `apple-touch-icon` (302–304); el hueco donde estaba el segundo lleva un comentario que prohíbe reañadirlo. | `App.jsx` 293–306 |
 
 ---
@@ -1250,7 +1313,7 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | **CLIENTES** | | | | |
 | 22 | Búsqueda por sufijo/subcadena | `helpers.js` `phoneMatch`, `App.jsx` 2829 | ✅ | 🧪 |
 | 23 | Alta automática al agendar | `App.jsx` 2546 | ✅ | — |
-| 24 | Historial de clienta | `ClientHistory` (3171) | ✅ | — |
+| 24 | Historial de clienta | `ClientHistory` (3385) | ✅ | — |
 | **SERVICIOS** | | | | |
 | 25 | Catálogo con precio y duración | `ServicesTab` (2903) | ✅ | 🧪 |
 | 26 | Historial de precios | `Code.gs` `trackPriceChanges` (1912) | ✅ | 🧪 |
@@ -1261,10 +1324,12 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | **FINANZAS** | | | | |
 | 31 | Recibido / pendiente / proyectado | `helpers.js` `reportMetrics` | ✅ | 🧪 |
 | 32 | Balance neto | `helpers.js` `reportMetrics` | ✅ | 🧪 |
+| 32b | **Saldo inicial** (vista General del Panel, **aparte y a la derecha** del Balance Neto, nunca mezclado; ≥ 0; persistido en la hoja **Config** de Google Sheets —sincronizado entre dispositivos, editable a mano en la hoja y **se vacía con el reset**—, con aviso verde «guardado y sincronizado» al guardarlo; `sz_opening_balance` es solo caché local) | `App.jsx` `openingBalance` · `Code.gs` `_readConfig`/`_writeConfig` | ✅ | — |
+| 32c | **Aviso de inasistencias por clienta** (historial: «Faltó X de sus últimas Y citas»; wizard: recuadro rojo con 2+ faltas) | `helpers.js` `clientNoShowStats`, `NOSHOW_WINDOW = 7` | ✅ | 🧪 |
 | 33 | No asistido **solo como número** | `helpers.js` `reportLines` | ✅ | 🧪 |
 | 34 | Gastos agrupados si > 8 (**solo texto del reporte**) | `helpers.js` `groupExpensesByCategory` | ✅ | 🧪 |
 | 35 | Total gastos **siempre** = todo el período | `helpers.js` | ✅ | 🧪 |
-| 36 | Reparto Efectivo / Transferencia | `helpers.js` `periodLedger` (`totalCash` / `totalTransfer`) | ✅ | 🧪 |
+| 36 | Reparto por método de pago (4 actuales + heredada + total Transferencias) | `helpers.js` `periodLedger` (`byMethod`, `totalTransfer`) | ✅ | 🧪 |
 | 37 | Comparación mes a mes | `MonthComparison` (3311) | ✅ | 🧪 |
 | 38 | Top servicios (ingresos y demanda) | `helpers.js` `topServicesByDemand`, `TopServices` (3442) | ✅ | 🧪 |
 | 38b | **Paginación en «Gastos del mes»** (>10) | `App.jsx` `Pager`, `FinancesTab` | ✅ | — |
@@ -1273,6 +1338,7 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | 38e | **Desplegar una categoría** con sus gastos (clic = abrir / cerrar) | `App.jsx` `ExpenseDetail`, `openCat` + `catPage` | ✅ | — |
 | 38f | **Círculos numerados** para las listas anidadas | `App.jsx` `CirclePager` | ✅ | — |
 | 38g | **Orden** de las listas: reciente → antiguo (citas del día: hora ↑; **gastos del día: `cmpExpense`** — descripción A→Z, luego mayor monto) | `App.jsx` `meSorted`, `mvRows`, `dayEntries`, `catList`, `ma`, `cmpExpense` | ✅ | — |
+| 38h | **Paginación en «Pasadas»** (20 por página) | `App.jsx` `PAST_APPT_PAGE_SIZE`, `pastPage`, `AccGroup` | ✅ | — |
 | **REPORTES** | | | | |
 | 39 | Períodos día / mes / rango / **año** | `helpers.js` `periodLedger` | ✅ | 🧪 |
 | 40 | Excel con 3 hojas (app) | `App.jsx` `exportExcel` (3740), SheetJS | ✅ | — |
@@ -1303,6 +1369,8 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | 61 | Polling 30 s + pausa con pestaña oculta | `App.jsx` 358–370 | ✅ | — |
 | 62 | Modo offline con `localStorage` | `App.jsx` 312–332 | ✅ | — |
 | 63 | Escritura optimista (revisión en el próximo polling) | `App.jsx` 372–389 | ✅ | — |
+| 63b | **Franja roja de guardado fallido + «↻ Reintentar»** (`refresh()` protegido mientras `saveFailed`) | `App.jsx` `saveFailed`, `failedSaveRef`, `retrySave` | ✅ | — |
+| 63c | **Excel de respaldo antes del reset** = informe completo (Resumen / Movimientos / Citas, histórico entero) + hoja Clientes, `respaldo_YYYY-MM-DD.xlsx` | `App.jsx` `exportBackupXlsx` · `buildReportWorkbook` | ✅ | — |
 | 64 | Tema y paletas persistentes | `GS` (829), `localStorage` | ✅ | — |
 | 65 | Branding dinámico (`VITE_BIZ_*`) | `App.jsx` 193–196, 293–306 | ✅ | — |
 | 66 | Telemetría / análisis externo | **No existe** | ✅ | ✅ |
@@ -1318,9 +1386,10 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | 🔎 | No verificado en producción (integraciones reales de Google y Vercel) |
 
 > ⚠️ **Ninguna funcionalidad fue probada manualmente en producción durante
-> esta ronda de documentación.** Las 317 pruebas corren en un **sandbox con
+> esta ronda de documentación.** Las **327 pruebas** corren en un **sandbox con
 > mocks** de Apps Script (`node:vm`), no contra Google real. La integración
 > con Sheets, Calendar, Gmail, Drive y Vercel queda marcada como 🔎.
+> La suite hoy son **327 pruebas** en 4 archivos.
 
 ---
 

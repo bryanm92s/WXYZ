@@ -44,7 +44,7 @@ Vercel (React App)  ←→  Google Apps Script  ←→  Google Sheets + Google C
      `SB_AUTHORIZED_EMAIL`.
    - **`SB_BIZ_NAME`** → el nombre del negocio **tal como debe aparecer en
      los correos** que envía el script (código de restablecimiento).
-     Opcional: si falta, los correos firman con «SZ» (el nombre por
+     Opcional: si falta, los correos firman con «WXYZ» (el nombre por
      defecto del despliegue original).
 6. Vincula el script a tu spreadsheet:
    - **Opción recomendada:** desde el Spreadsheet, ve a **Extensiones → Apps
@@ -103,6 +103,27 @@ git push -u origin main
    > 🔑 **Nunca** escribas el token en `Code.gs`: el repositorio es público.
    > `VITE_ADMIN_WHATSAPP` habilita el botón «💬 WhatsApp admin» del reporte
    > y también vive **solo** en Vercel.
+
+   **Categorías disponibles para `VITE_CATALOG`** (catálogo inicial de
+   servicios; si no la defines, queda `cejas`):
+
+   | Categoría | Tipo de negocio | Serv. |
+   |---|---|:---:|
+   | `cejas` ← *defecto* | Cejas y pestañas | 9 |
+   | `unas` | Spa de uñas / nail bar | 11 |
+   | `peluqueria` | Peluquería dama y caballero | 10 |
+   | `barberia` | Barbería (corte masculino) | 10 |
+   | `depilacion` | Depilación con cera | 10 |
+   | `masajes` | Spa de masajes | 9 |
+   | `estetica` | Estética facial | 9 |
+   | `maquillaje` | Maquillaje profesional | 9 |
+
+   > 📖 **Para cambiarla más adelante:** Vercel → *Settings → Environment
+   > Variables* → edita el valor de `VITE_CATALOG` (minúsculas y **sin
+   > tildes**) → **Deployments → ⋮ → Redeploy**. Las variables `VITE_*`
+   > se leen al compilar, así que sin ese paso no cambia nada. El paso a
+   > paso completo y el detalle de cada categoría están en
+   > [`docs/MANUAL_TECNICO.md`](docs/MANUAL_TECNICO.md) sección **C.1.1**.
 
 3. Clic en **Deploy** ✅
 

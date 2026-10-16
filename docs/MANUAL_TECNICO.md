@@ -49,7 +49,7 @@ entorno nuevo.
 
 | Servicio | Uso en WXYZ | Dónde se configura |
 |---|---|---|
-| **Google Sheets** | Base de datos (5 hojas) | Vinculado al proyecto de Apps Script |
+| **Google Sheets** | Base de datos (6 hojas) | Vinculado al proyecto de Apps Script |
 | **Google Calendar** | Eventos de cada cita | Calendario por defecto de la cuenta |
 | **Google Drive** | Respaldos automáticos de la hoja | Carpetas `BACKUP-PROYECTO/Backups/…` |
 | **Gmail** | Reportes automáticos, respaldo semanal, código de recuperación | Cuenta del propietario del script |
@@ -119,7 +119,7 @@ Abre **http://localhost:5173**.
 ### B.5 Pruebas, lint y build
 
 ```bash
-npm test              # 317 pruebas, una sola ejecución
+npm test              # 339 pruebas, una sola ejecución
 npm run test:watch    # modo observador
 npm run lint          # ESLint sobre src/
 npm run build         # build de producción en dist/
@@ -130,7 +130,7 @@ npm run preview       # sirve dist/ localmente
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | ✅ **317/317 pruebas pasando** (4 suites) |
+| `npm test` | ✅ **339/339 pruebas pasando** (5 suites) |
 | `npm run lint` | ✅ **0 errores**, 11 *warnings* preexistentes (`no-unused-vars`) |
 | `npm run build` | ✅ Build OK (~5,8 s) |
 
@@ -243,6 +243,52 @@ Todas se leen con `import.meta.env` y **quedan embebidas en el bundle JS**
 | **Sensibilidad** | Pública |
 | **Verificación** | JSON roto o vacío → la app arranca igual, con el preset. Ese es el diseño: **nunca** reventar por una variable mal escrita. |
 
+#### C.1.1 Categorías de catálogo: las 8 disponibles y paso a paso
+
+`VITE_CATALOG` acepta **8 claves exactas**. Cada una puebla la pantalla
+«✂️ Servicios» con los precios y duraciones típicos de ese tipo de negocio
+(siempre editables desde la app):
+
+| # | Clave (`VITE_CATALOG`) | Tipo de negocio | Serv. | Ejemplos de servicios |
+|---:|---|---|:---:|---|
+| 1 | `cejas` ← *defecto* | Cejas y pestañas | 9 | Micropigmentación (350.000 / 90 min), extensiones, lifting, laminado |
+| 2 | `unas` | Spa de uñas / nail bar | 11 | Esmaltado semipermanente, acrílicas, builder gel, nail art |
+| 3 | `peluqueria` | Peluquería dama y caballero | 10 | Corte, tinte, mechas, alisado, peinado de novia |
+| 4 | `barberia` | Barbería (corte masculino) | 10 | Corte, corte de barba, afeitado, marcación, camuflaje de canas |
+| 5 | `depilacion` | Depilación con cera | 10 | Axilas, brazos, piernas, ingles / bikini, brasileña |
+| 6 | `masajes` | Spa de masajes | 9 | Relajante, descontracturante, piedras calientes, drenaje linfático |
+| 7 | `estetica` | Estética facial | 9 | Higiene facial, peeling, microneedling, radiofrecuencia |
+| 8 | `maquillaje` | Maquillaje profesional | 9 | Social, novia, quinceañera, fantasia, cejas con henna |
+
+**Paso a paso para elegir (o cambiar) la categoría:**
+
+1. Abre **vercel.com** → tu proyecto → **Settings → Environment Variables**.
+2. Si `VITE_CATALOG` no existe, pulsa **Add**; si existe, **Edit**.
+3. Valor: **solo la clave**, en minúsculas y sin tildes (p. ej. `masajes`).
+   Marca el entorno **Production** (y **Preview** si lo usas).
+4. **Save**.
+5. Publica el cambio: **Deployments** → ⋮ del despliegue más reciente →
+   **Redeploy**. ⚠️ Las `VITE_*` se leen **al compilar**: sin rebuild,
+   no cambia nada.
+6. Verificación: abre la app **sin datos** (o ejecuta un restablecimiento)
+   y comprueba en ✂️ Servicios que aparecen los servicios correctos.
+
+> 📌 **Tres reglas que conviene tener claras**
+>
+> - **La clave es exacta.** `Masajes` o `  UNAS ` sí funcionan (se pasa a
+>   minúsculas y se recortan los espacios), pero `peluquería` con tilde
+>   **no**: cae al defecto `cejas` sin ningún aviso en pantalla.
+> - **Solo puebla el primer arranque** y el resultado de un
+>   **restablecimiento**. En cuanto hay datos, el catálogo real vive en
+>   Google Sheets y se edita desde ✂️ Servicios.
+> - **Si nada encaja** (estudio de tatuajes, lavandería, etc.) se usa
+>   `VITE_DEFAULT_SERVICES` con la lista JSON del negocio; esa tiene
+>   prioridad sobre `VITE_CATALOG`.
+>
+> El archivo fuente de estas 8 categorías es `src/catalogs.js`; el test
+> `src/catalogs.test.js` verifica que todas sean utilizables (nombre,
+> precio y duración válidos).
+
 | Campo | Contenido |
 |---|---|
 | **Nombre exacto** | `VITE_ADMIN_WHATSAPP` |
@@ -265,7 +311,7 @@ Ninguna se escribe dentro del código (el repo es público).
 | `SB_SYNC_TOKEN` | `TOKEN_PROP_KEY` (`Code.gs` 15) | Autentica GET y POST. **Si falta, no se autoriza nada** («fail closed») y el servidor responde «Token de sincronización no configurado: añade la propiedad SB_SYNC_TOKEN…» (`Code.gs` 244–245). | **Sí** | **Secreto** | Sin ella, cualquier petición es rechazada. Con ella y el token correcto, la app muestra «✓ Sincronizado». |
 | `SB_AUTHORIZED_EMAIL` | `PROP_KEY.email` (`Code.gs` ~170) | **ÚNICA** fuente del correo de **seguridad**: código de restablecimiento y los 4 reportes automáticos. | **Sí** — sin ella no se envía nada de eso. | **Secreto / personal** | Con ella: el correo llega al indicado al pedir el código. Sin ella: no sale nada y el log de ejecución avisa (el reset responde igual para no revelar la configuración, pero no gasta el cupo de solicitudes). |
 | `SB_BACKUP_EMAIL` | `PROP_KEY.backupEmail` (`Code.gs` ~171) | Destinatario del **respaldo semanal** (el `.xlsx` del sábado). Para separar «a quién le llega la copia» de «quién recibe los códigos». | **No** — si falta, el respaldo va a `SB_AUTHORIZED_EMAIL`. | **Secreto / personal** | Con ella: el sábado el backup llega a esa dirección. Sin ella: llega a `SB_AUTHORIZED_EMAIL` (comportamiento original). |
-| `SB_BIZ_NAME` | `PROP_KEY.bizName` (`Code.gs` ~172) | Marca que firma los correos del script (asunto y texto). | **No** — si falta, firma el nombre por defecto. | Interna | Mira el asunto del correo: debe llevar el nombre del negocio. |
+| `SB_BIZ_NAME` | `PROP_KEY.bizName` (`Code.gs` ~172) | Marca que firma los correos del script (asunto y texto). | **No** — si falta, firma «WXYZ». | Interna | Mira el asunto del correo: debe llevar el nombre del negocio. |
 | `SB_RESET_CODE` | `PROP_KEY.code` (`Code.gs` ~173) | JSON `{hash, expiresAt, tries}` del código vigente. **La gestiona el propio sistema.** | Automática | Interna | No se toca a mano. |
 | `SB_RESET_GRANTS` | `PROP_KEY.grants` (`Code.gs` 166) | JSON `{grantId: {hash, expiresAt, usedAt}}`. **La gestiona el propio sistema.** | Automática | Interna | No se toca a mano. |
 | `SB_RESET_LIMITS` | `PROP_KEY.limits` (`Code.gs` 167) | JSON `{sends:[ms], lockedUntil:ms}` de rate-limiting. **La gestiona el propio sistema.** | Automática | Interna | No se toca a mano. |
@@ -285,7 +331,7 @@ saberlo al instalar en otro negocio:
 | `'BACKUP-PROYECTO'` y `'Backups'` | `Code.gs` (buscador de carpetas de Drive) | Carpetas de Drive para los respaldos | ❌ Hardcodeado |
 | `'SZ'` (marca por defecto) | `App.jsx` (`BIZ_NAME`) y `Code.gs` (`BIZ_NAME_DEFAULT`) | Nombre con el que arranca la pestaña y con el que firman los correos **cuando no hay nada configurado** | ✅ Sí, sin editar código: `VITE_BIZ_NAME` (app) y `SB_BIZ_NAME` (correos). Es el **único** resto de marca escrita en el código |
 | `'cejas'` (catálogo por defecto) | `src/catalogs.js` (`DEFAULT_CATALOG_KEY`) | Servicios con los que arranca el programa si nadie elige catálogo | ✅ Sí: `VITE_CATALOG` o `VITE_DEFAULT_SERVICES` |
-| `'sb_c'`, `'sb_s'`, `'sb_a'`, `'sb_e'` | `App.jsx` | Claves de `localStorage` (copia de trabajo offline) | ❌ Hardcodeado, pero **no es marca**: cada dominio tiene su propio `localStorage`, así que un cliente nuevo nunca las comparte con WXYZ |
+| `'sb_c'`, `'sb_s'`, `'sb_a'`, `'sb_e'`, `'sz_opening_balance'` | `App.jsx` | Claves de `localStorage` (copia de trabajo offline; `sz_opening_balance` = caché local del saldo inicial, cuya fuente de verdad es la hoja **Config**) | ❌ Hardcodeado, pero **no es marca**: cada dominio tiene su propio `localStorage`, así que un cliente nuevo nunca las comparte con WXYZ |
 
 > ✅ **El correo ya NO está escrito en el código.** Antes aparecía en tres
 > sitios (`_sendReportEmail`, `sendWeeklyBackupEmail` y como respaldo del
@@ -343,7 +389,7 @@ hoja automáticamente:
 
 | Archivo | Origen | Contenido |
 |---|---|---|
-| `Code.gs` | Pegar el contenido de `apps-script/Code.gs` | Toda la lógica (~2.072 líneas) |
+| `Code.gs` | Pegar el contenido de `apps-script/Code.gs` | Toda la lógica (~2.250 líneas) |
 | `appsscript.json` | Pegar el contenido de `apps-script/appsscript.json` | Manifiesto: zona horaria y scopes |
 
 > 💡 El editor por defecto **no muestra el manifiesto**. Actívalo en
@@ -381,7 +427,7 @@ producción**:
 
 | Scope | Función de WXYZ que lo necesita |
 |---|---|
-| `spreadsheets` | Leer y escribir las 5 hojas |
+| `spreadsheets` | Leer y escribir las 6 hojas |
 | `calendar` | Crear, actualizar y borrar eventos de cita |
 | `gmail.send` | `GmailApp.sendEmail` (reportes, respaldo semanal, código de reset) |
 | `script.scriptapp` | `ScriptApp.newTrigger` / `deleteTrigger` (triggers automáticos) |
@@ -420,7 +466,7 @@ En **⚙️ → Propiedades del proyecto → Propiedades de script**, agrega:
 | `SB_SYNC_TOKEN` | Un texto **único y largo** (p. ej. 32+ caracteres aleatorios). El mismo que usarás en `VITE_TOKEN`. |
 | `SB_AUTHORIZED_EMAIL` | **Obligatoria.** Tu correo. A él llegan el código de restablecimiento y los reportes automáticos. |
 | `SB_BACKUP_EMAIL` | **Opcional.** Otro correo si quieres que la copia semanal de la hoja vaya a otro sitio (una gestoría, el correo personal del dueño…). Si la dejas vacía, el respaldo va a `SB_AUTHORIZED_EMAIL`. |
-| `SB_BIZ_NAME` | Nombre del negocio **en los correos que envía el script** (asunto, cuerpo y tarjeta HTML del código de restablecimiento). No es secreto, pero vive aquí y no en el código: un cliente nuevo cambia de nombre sin editar `Code.gs`. Si falta → «SZ». |
+| `SB_BIZ_NAME` | Nombre del negocio **en los correos que envía el script** (asunto, cuerpo y tarjeta HTML del código de restablecimiento). No es secreto, pero vive aquí y no en el código: un cliente nuevo cambia de nombre sin editar `Code.gs`. Si falta → «WXYZ». |
 
 > 🔑 **Nunca** escribas el token dentro de `Code.gs`: el repositorio es público.
 
@@ -502,7 +548,7 @@ Cada vez que cambies `Code.gs`:
 
 ### E.1 Estructura de las hojas
 
-`initSheets()` (`Code.gs` 1956) **crea automáticamente** las 5 hojas que falten.
+`initSheets()` (`Code.gs` 2050) **crea automáticamente** las 6 hojas que falten.
 Cada hoja tiene una fila de encabezados en español (`HEADERS_ES`, `Code.gs` 30–39)
 y **todas las celdas se guardan como texto** (`setNumberFormat('@')`).
 
@@ -547,7 +593,7 @@ y **todas las celdas se guardan como texto** (`setNumberFormat('@')`).
 | Q | ID Evento Calendar | `calendarEventId` |
 | R | Completada | `completed` (`true`/`false`/`noshow`) |
 | S | Duración (min) | `duration` |
-| T | Método de pago | `paymentMethod` |
+| T | Método de pago | `paymentMethod` | Valores actuales: `Efectivo` / `Nequi` / `Daviplata` / `Bancolombia` (`PAYMENT_METHODS` en `helpers.js` ≡ `PAY_METHODS` en `Code.gs`, mismo orden). Heredado (solo lectura): `Transferencia` (`LEGACY_*`) — las citas viejas lo conservan, se cuentan en su renglón y en el total de **Transferencias**, pero ya no se puede elegir; vacío → «Sin método» |
 
 #### `Gastos` — 5 columnas
 
@@ -568,13 +614,32 @@ y **todas las celdas se guardan como texto** (`setNumberFormat('@')`).
 | C | Precio | `price` |
 | D | Fecha Cambio | `changedAt` |
 
+#### `Config` — clave/valor (parámetros del negocio)
+
+| # | Encabezado | Contenido |
+|---|---|---|
+| A | Clave | `opening_balance` (saldo inicial) |
+| B | Valor | Importe ≥ 0 (número) |
+| C | Actualizado | Marca ISO 8601 del último cambio |
+
+- **No usa `writeSheet`**: la leen/escriben `_readConfig` / `_writeConfig`
+  (`Code.gs`), que solo tocan la fila de la clave. Por eso **sí se puede
+  editar la celda a mano** en el Google Sheet (excepción a E.2).
+- `doGet` la devuelve como `data.config`; el frontend la relee en cada
+  refresco (≤30 s), así que un cambio —desde Ajustes o editando la celda
+  directo en la hoja— se propaga a todos los dispositivos.
+- No está en `JS_KEYS` (`readSheet` no la toca), y **se vacía con el reset**:
+  `_resetData` la limpia hasta la cabecera, porque resetear es eliminar todo
+  (el saldo inicial vuelve a 0).
+
 ### E.2 ⚠️ `writeSheet` reescribe la hoja completa
 
 `writeSheet` (`Code.gs` 1983) hace `sh.clearContents()` y **reescribe encabezados
 y todas las filas** en cada guardado. Consecuencias prácticas:
 
 - **No edites las hojas a mano** mientras la app esté en uso: esas filas se
-  pierden en el siguiente guardado.
+  pierden en el siguiente guardado. **Excepción: la hoja `Config`** (clave/valor)
+  sí está pensada para edición manual (véase arriba).
 - Si una hoja tiene **más columnas** de las esperadas, `readSheet` las ignora y
   avisa por consola (`Code.gs` 1972).
 - Si tiene **menos**, los campos faltantes llegan como `''` (línea 1973).
@@ -626,6 +691,12 @@ así:
 - **Al restablecer**, los eventos se borran **desde el servidor** dentro de la
   operación ya autorizada (`_resetData`, `Code.gs` 457–476); el frontend no
   borra nada antes de autorizar.
+- **Al fallar un guardado** (`saveData` → `sync`, `App.jsx`): la app mantiene
+  el estado optimista y muestra la **franja roja «⚠️ No se pudo guardar»** con
+  botón **«↻ Reintentar guardar»** (`saveFailed` + `failedSaveRef`), que
+  reenvía el mismo payload. Además `refresh()` **no** reemplaza el estado
+  local mientras ese aviso esté activo (evita perder la mutación pendiente),
+  y el retry limpia el aviso sin re-aplicar cambios optimistas.
 
 ### E.6 Cómo verificar que citas y eventos corresponden
 

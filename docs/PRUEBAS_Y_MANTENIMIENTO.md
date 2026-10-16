@@ -28,7 +28,7 @@ Guía para **probar, diagnosticar, respaldar, restaurar y desplegar** WXYZ.
 Todos los comandos están tomados de `package.json` (`scripts`).
 
 ```bash
-npm run test          # una ejecución de las 317 pruebas
+npm run test          # una ejecución de las 339 pruebas
 npm run test:watch    # modo observador (re-ejecuta al guardar)
 npm run lint          # ESLint sobre src/ (*.js y *.jsx)
 npm run build         # build de producción en dist/
@@ -50,7 +50,7 @@ npm run format        # Prettier — formatea src/**
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | ✅ **317/317 pruebas pasando** — 4 suites (≈6 s) |
+| `npm test` | ✅ **339/339 pruebas pasando** — 5 suites (≈3 s) |
 | `npm run lint` | ✅ **0 errores**, 11 *warnings* |
 | `npm run build` | ✅ OK (≈6 s) |
 
@@ -62,14 +62,15 @@ npm run format        # Prettier — formatea src/**
 
 ## 2. Qué cubren las pruebas
 
-### 2.1 Las cuatro suites
+### 2.1 Las cinco suites
 
 | Suite | Pruebas | Qué cubre |
 |---|---:|---|
-| `src/helpers.test.js` | **165** | Toda la lógica pura de `helpers.js` |
-| `src/backend.test.js` | **131** | Ejecuta el `Code.gs` **real** en un sandbox |
+| `src/helpers.test.js` | **171** | Toda la lógica pura de `helpers.js` |
+| `src/backend.test.js` | **144** | Ejecuta el `Code.gs` **real** en un sandbox |
 | `src/api.test.js` | **7** | Transporte HTTP y mensajes de error |
 | `src/catalogs.test.js` | **14** | Catálogo inicial por tipo de negocio (`VITE_CATALOG` / `VITE_DEFAULT_SERVICES`) |
+| `src/excel.test.js` | **3** | Libro Excel (`buildReportWorkbook`): Resumen/Movimientos/Citas, hoja Clientes y las 9 paletas |
 
 ### 2.2 `src/helpers.test.js` — lógica pura
 
@@ -104,7 +105,10 @@ Cubre:
 - **Seguridad**: `_requestResetCode`, `_verifyResetCode`, `_resetData`,
   grant de un solo uso, rate-limiting, hash, comparación en tiempo lineal.
 - **Sheets**: `readSheet`, `writeSheet`, `initSheets`, `sanitizePayload`,
-  `trackPriceChanges`, `seedPriceHistory`.
+  `trackPriceChanges`, `seedPriceHistory`, y la hoja **Config**
+  (`_readConfig`/`_writeConfig`: saldo inicial sincronizado entre
+  dispositivos, edición manual de la celda, saneado y **borrado** por
+  `resetData`).
 - **Calendar**: `createCalEvent`, `updateCalEvent`, `deleteCalEvent`,
   verificación post-escritura, idempotencia.
 - **Reportes**: `_buildReport`, `_groupExpenses`, `_xlsxName`, períodos.
@@ -187,7 +191,7 @@ Genera `dist/`. Salida esperada (aprox.):
 | Archivo | Tamaño |
 |---|---|
 | `dist/assets/index-*.css` | ~0,28 kB |
-| `dist/assets/index-*.js` | ~334 kB (gzip ~91 kB) |
+| `dist/assets/index-*.js` | ~352 kB (gzip ~97 kB) |
 | `dist/assets/xlsx-*.js` | ~429 kB (gzip ~143 kB) — **carga diferida** |
 | `dist/assets/logo-*.png` | ~285 kB |
 
@@ -206,18 +210,18 @@ Aplica Prettier (`semi: false`, `singleQuote: true`, `printWidth: 120`).
 
 ## 4. Qué NO cubren las pruebas
 
-Esto es importante: **pasar las 317 pruebas no garantiza que producción
+Esto es importante: **pasar las 339 pruebas no garantiza que producción
 funcione.**
 
 | No se prueba | Por qué |
 |---|---|
-| **Componentes React** | No hay `@testing-library/react`: toda la UI (~5.120 líneas) está **sin tests de componentes** |
+| **Componentes React** | No hay `@testing-library/react`: toda la UI (~5.500 líneas) está **sin tests de componentes** |
 | **Google Sheets real** | `SpreadsheetApp` está **mockeado** |
 | **Google Calendar real** | `CalendarApp` está **mockeado** |
 | **Gmail real** | `GmailApp` está **mockeado** |
 | **Google Drive real** | `DriveApp` está **mockeado** |
 | **UrlFetchApp real** | **Mockeado**: no se descarga ningún `.xlsx` de verdad |
-| **La exportación Excel de la app** | SheetJS no se prueba (no hay test de `exportExcel`) |
+| **El botón de Excel en el navegador** | `excel.test.js` prueba `buildReportWorkbook` (la fuente del libro), pero no se monta SheetJS en un navegador |
 | **El botón de WhatsApp** | Se abre `wa.me`; no se automatiza |
 | **La red real** | `fetch` está simulado |
 | **Vercel y el despliegue** | No hay tests E2E |
@@ -266,7 +270,12 @@ Haz esta lista **antes** de cada publicación importante. Usa un
 ### 5.4 Finanzas y reportes
 
 - [ ] Marcar una cita **Completada** con **Efectivo** → suma en ingresos.
-- [ ] Marcar otra con **Transferencia** → aparece en su rubro.
+- [ ] Marcar otra con **Nequi** → aparece en su rubro **y** suma en
+      **Transferencias** (mismo criterio con **Daviplata** y **Bancolombia**).
+- [ ] En el reporte salen siempre **Efectivo, Nequi, Daviplata y
+      Bancolombia**, el renglón **Transferencias** (total) y, si hay citas
+      viejas en «Transferencia», el renglón heredado *«· Transferencia
+      (dato anterior)»*.
 - [ ] Marcar una **No asistió** → cuenta como **número**, no como dinero.
 - [ ] Registrar varios gastos (**más de 8**) → el detalle se agrupa por
       categoría pero **el total suma todo**.

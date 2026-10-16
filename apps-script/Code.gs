@@ -14,7 +14,21 @@
    no se confunda con un token malo.                                */
 const TOKEN_PROP_KEY = 'SB_SYNC_TOKEN';
 
-const SHEETS = { clients:'Clientes', services:'Servicios', appointments:'Citas', expenses:'Gastos', priceHistory:'HistorialPrecios' };
+/* Métodos de pago: la MISMA lista, en el MISMO orden, que
+   PAYMENT_METHODS en src/helpers.js (los reportes la recorren entera
+   por paridad FE↔BE; el test de paridad falla si se desalinean). */
+const PAY_METHODS = ['Efectivo', 'Nequi', 'Daviplata', 'Bancolombia'];
+// «Transferencia» se retiró de la UI: las citas viejas lo conservan y siguen
+// contando en reportes y Excel, pero ya no se puede elegir al completar.
+const LEGACY_PAY_METHODS = ['Transferencia'];
+const TRANSFER_PAY_METHODS = ['Nequi', 'Daviplata', 'Bancolombia']; // son transferencias
+
+function _isPayMethod(m) {
+  var x = String(m || '').trim();
+  return PAY_METHODS.indexOf(x) !== -1 || LEGACY_PAY_METHODS.indexOf(x) !== -1;
+}
+function _allPayMethods() { return PAY_METHODS.concat(LEGACY_PAY_METHODS); }
+const SHEETS = { clients:'Clientes', services:'Servicios', appointments:'Citas', expenses:'Gastos', priceHistory:'HistorialPrecios', config:'Config' };
 
 const JS_KEYS = {
   clients:      ['id','name','phone','createdAt'],
@@ -50,6 +64,7 @@ function doGet(e) {
       appointments: readSheet(ss,'appointments'),
       expenses:     readSheet(ss,'expenses'),
       priceHistory: readSheet(ss,'priceHistory'),
+      config:       _readConfig(ss),
     });
   } catch(ex) { return err('GET: '+ex.message); }
 }
@@ -112,6 +127,7 @@ function doPost(e) {
     }
     if (b.appointments !== undefined) writeSheet(ss,'appointments',b.appointments);
     if (b.expenses     !== undefined) writeSheet(ss,'expenses',b.expenses);
+    if (b.config       !== undefined && b.config !== null) _writeConfig(ss, b.config);
     let calResult=null;
     if (b.calendarEvent) calResult=createCalEvent(b.calendarEvent);
     lock.releaseLock();
@@ -529,6 +545,13 @@ function _resetData(ss, b, auth) {
   writeSheet(ss, 'expenses', []);
   writeSheet(ss, 'services', services);
   _seedPriceHistory(ss, services);
+
+  // Resetear es eliminar TODO: la hoja Config vuelve a su cabecera
+  // (opening_balance ausente → 0). `_readConfig` no devuelve nada y el
+  // frontend pone su saldo inicial en 0 en el mismo refresco.
+  var cfg = _configSheet(ss);
+  cfg.clearContents();
+  cfg.getRange(1, 1, 1, 3).setValues([CONFIG_HEADERS]);
 
   return { reset: true, deletedEvents: deletedEvents, grantId: auth.grantId };
 }
@@ -1207,16 +1230,23 @@ function _lastDayOfMonth(y, m) {
   return y + '-' + p(m) + '-' + p(d.getDate());
 }
 
-// 'YYYY-MM-DD' → 'vie, 14 ago 2026' (es-CO vía Utilities.formatDate).
+// Etiqueta de un día en español SIEMPRE: 'lun, 5 de ene 2026'.
+// OJO: NO se usa Utilities.formatDate para los nombres — esa función
+// formatea con la JVM locale por defecto (en-US en Apps Script) y en
+// producción el asunto salía «Mon, 5 de Jan 2026». Los nombres salen
+// de estas tablas, igual que _monthLabel y que fmtDate (helpers.js)
+// en el frontend.
+var DIAS_CORTOS  = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+var MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 function _fmtDayLabel(dateStr) {
-  return Utilities.formatDate(
-    new Date(dateStr + 'T00:00:00'),
-    Session.getScriptTimeZone(),
-    "EEE, d 'de' MMM yyyy"
-  );
+  var p = String(dateStr || '').split('-');
+  var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  if (p.length !== 3 || isNaN(d.getTime())) return String(dateStr || '');
+  return DIAS_CORTOS[d.getDay()] + ', ' + d.getDate() + ' de ' +
+         MESES_CORTOS[d.getMonth()] + ' ' + d.getFullYear();
 }
 
-// 'YYYY-MM-DD','YYYY-MM-DD' → 'Lun 10 a Dom 16 ago 2026'
+// 'YYYY-MM-DD','YYYY-MM-DD' → 'lun, 10 de ago 2026 a dom, 16 de ago 2026'
 function _fmtRangeLabel(from, to) {
   return _fmtDayLabel(from) + ' a ' + _fmtDayLabel(to);
 }
@@ -1270,7 +1300,11 @@ function _buildReport(period) {
   // total de la cita, así que aquí se separa. Con esto el correo sale
   // con los MISMOS números que el WhatsApp que se manda a mano.
   var incomes = apptsInPeriod.filter(function(a){ return _boolV(a.completed); });
-  var totalIncome = 0, totalService = 0, totalDelivery = 0, totalCash = 0, totalTransfer = 0;
+  var totalIncome = 0, totalService = 0, totalDelivery = 0;
+  // Totales por método: los 4 actuales + el heredado «Transferencia»
+  // (réplica de periodLedger del frontend: `byMethod`).
+  var byMethod = {};
+  _allPayMethods().forEach(function(m){ byMethod[m] = 0; });
   incomes.forEach(function(a){
     var amount   = _toN(a.totalPrice || a.servicePrice || 0);
     var isDom    = a.domicilio === true || a.domicilio === 'true';
@@ -1279,11 +1313,16 @@ function _buildReport(period) {
     totalDelivery += delivery;
     totalService  += amount - delivery;
     var m = String(a.paymentMethod || '').trim();
-    if (m === 'Efectivo') totalCash += amount;
-    else if (m === 'Transferencia') totalTransfer += amount;
+    if (byMethod.hasOwnProperty(m)) byMethod[m] += amount;
   });
   var revenue      = totalIncome;                      // «Total recibido»
-  var totalNoMethod = totalIncome - totalCash - totalTransfer;  // citas de antes del método
+  var totalKnown = 0;
+  _allPayMethods().forEach(function(m){ totalKnown += byMethod[m]; });
+  var totalNoMethod = totalIncome - totalKnown;  // citas de antes del método
+  var totalCash = byMethod.Efectivo;             // compat. con lecturas previas
+  var totalTransfer = 0;                         // Nequi + Daviplata + Bancolombia + heredadas
+  TRANSFER_PAY_METHODS.forEach(function(m){ totalTransfer += byMethod[m]; });
+  totalTransfer += byMethod.Transferencia;
   var projected = apptsInPeriod
     .reduce(function(s,a){ return a.completed === 'noshow' ? s : s + _toN(a.totalPrice || a.servicePrice || 0); }, 0);
 
@@ -1326,7 +1365,7 @@ function _buildReport(period) {
       kind: 'in', date: _cleanDate(a.date), time: _cleanTime(a.time),
       who: a.clientName || '', detail: a.serviceNames || '',
       service: amount - delivery, delivery: delivery, amount: amount,
-      payMethod: (m === 'Efectivo' || m === 'Transferencia') ? m : 'Sin registrar'
+      payMethod: _isPayMethod(m) ? m : 'Sin registrar'
     });
   });
   expensesInPeriod.forEach(function(e){
@@ -1366,7 +1405,7 @@ function _buildReport(period) {
       dom: isDom ? 'Sí' : 'No', address: a.address || '',
       status: falta ? 'No asistió' : (done ? 'Completada' : 'Pendiente'),
       payMethod: (done && !falta)
-        ? ((m === 'Efectivo' || m === 'Transferencia') ? m : 'Sin registrar') : '',
+        ? (_isPayMethod(m) ? m : 'Sin registrar') : '',
       createdAt: String(a.createdAt || '').slice(0, 19).replace('T', ' ')
     });
   };
@@ -1395,6 +1434,7 @@ function _buildReport(period) {
     pending: pending, noshow: noshow, completionRate: completionRate,
     revenue: revenue, projected: projected,
     totalService: totalService, totalDelivery: totalDelivery,
+    byMethod: byMethod,
     totalCash: totalCash, totalTransfer: totalTransfer, totalNoMethod: totalNoMethod,
     expenseItems: expenseItems,
     totalExpenses: totalExpenses, neto: neto,
@@ -1517,10 +1557,15 @@ function _buildReportXlsx(period, r) {
       ['Domicilios (cantidad de citas)', r.domicilios],
       ['Ingresos proyectados (con pendientes, incl. domicilios)', r.projected],
       ['', ''],
+    ].concat([
       ['Cobrado en efectivo', ''],
-      ['Cobrado por transferencia', ''],
+      ['Cobrado por transferencia (Nequi)', ''],
+      ['Cobrado por transferencia (Daviplata)', ''],
+      ['Cobrado por transferencia (Bancolombia)', ''],
+      ['Cobrado por transferencia (dato anterior)', ''],   // «Transferencia», heredado
+      ['TRANSFERENCIAS (total)', ''],
       ['Cobrado sin método registrado', ''],
-    ];
+    ]);
     wsR.getRange(1, 1, resumen.length, 2).setValues(resumen);
 
     // filaDe() devuelve el NÚMERO DE FILA de Excel (el índice 0-based
@@ -1544,13 +1589,19 @@ function _buildReportXlsx(period, r) {
     wsR.getRange(fGas,  2).setFormula('=Movimientos!I' + tRow);
     wsR.getRange(fNeto, 2).setFormula('=B' + fTot + '-B' + fGas);
     var fEfe = filaDe('Cobrado en efectivo');
-    wsR.getRange(fEfe,     2).setFormula(sumif('Efectivo'));
-    wsR.getRange(fEfe + 1, 2).setFormula(sumif('Transferencia'));
-    wsR.getRange(fEfe + 2, 2).setFormula(sumif('Sin registrar'));
+    var metodoFilas = ['Efectivo', 'Nequi', 'Daviplata', 'Bancolombia', 'Transferencia'];
+    metodoFilas.forEach(function(m, i){
+      wsR.getRange(fEfe + i, 2).setFormula(sumif(m));
+    });
+    // TRANSFERENCIAS (total) = Nequi + Daviplata + Bancolombia + dato anterior.
+    var fTrans = fEfe + metodoFilas.length;
+    wsR.getRange(fTrans, 2).setFormula(
+      '=B' + (fEfe + 1) + '+B' + (fEfe + 2) + '+B' + (fEfe + 3) + '+B' + (fEfe + 4));
+    wsR.getRange(fTrans + 1, 2).setFormula(sumif('Sin registrar'));
     wsR.getRange(fServ, 2, fNeto - fServ + 1, 1).setNumberFormat(PESO);
     wsR.getRange(filaDe('Ingresos proyectados (con pendientes, incl. domicilios)'), 2)
        .setNumberFormat(PESO);
-    wsR.getRange(fEfe, 2, 3, 1).setNumberFormat(PESO);
+    wsR.getRange(fEfe, 2, metodoFilas.length + 2, 1).setNumberFormat(PESO);
     anchosDe(wsR, [52, 18]);
 
     // ── Hoja Citas ────────────────────────────────────────────
@@ -1719,8 +1770,16 @@ function _sendReportEmail(period, kind) {
   lines.push(BULLET + ' Servicio(s): *' + fmtM(r.totalService) + '*');
   lines.push(BULLET + ' Domicilios: *' + fmtM(r.totalDelivery) + '*');
   lines.push(BULLET + ' Total recibido: *' + fmtM(r.revenue) + '*');
-  lines.push('   - Efectivo: *' + fmtM(r.totalCash) + '*');
-  lines.push('   - Transferencia: *' + fmtM(r.totalTransfer) + '*');
+  // Los 4 métodos actuales salen SIEMPRE (aunque en $0), y debajo el
+  // total de transferencias; el heredado «Transferencia» solo aparece
+  // si hay citas viejas con ese método. Replica reportLines del frontend.
+  PAY_METHODS.forEach(function(m){
+    var v = (r.byMethod && r.byMethod[m]) || 0;
+    lines.push('   - ' + m + ': *' + fmtM(v) + '*');
+  });
+  var legacyTr = (r.byMethod && r.byMethod.Transferencia) || 0;
+  if (legacyTr > 0) lines.push('   - \u00b7 Transferencia (dato anterior): *' + fmtM(legacyTr) + '*');
+  lines.push('   - Transferencias: *' + fmtM(r.totalTransfer || 0) + '*');
   if (r.totalNoMethod > 0) lines.push('   - Sin m\u00e9todo registrado: *' + fmtM(r.totalNoMethod) + '*');
   lines.push(BULLET + ' Proyectado: *' + fmtM(r.projected) + '*');
   lines.push('');
@@ -1780,8 +1839,13 @@ function _sendReportEmail(period, kind) {
   hlines.push(hBULLET + ' Servicio(s): <b>' + esc(fmtM(r.totalService)) + '</b>');
   hlines.push(hBULLET + ' Domicilios: <b>' + esc(fmtM(r.totalDelivery)) + '</b>');
   hlines.push(hBULLET + ' Total recibido: <b>' + esc(fmtM(r.revenue)) + '</b>');
-  hlines.push('   - Efectivo: <b>' + esc(fmtM(r.totalCash)) + '</b>');
-  hlines.push('   - Transferencia: <b>' + esc(fmtM(r.totalTransfer)) + '</b>');
+  PAY_METHODS.forEach(function(m){
+    var v = (r.byMethod && r.byMethod[m]) || 0;
+    hlines.push('   - ' + m + ': <b>' + esc(fmtM(v)) + '</b>');
+  });
+  var legacyTrH = (r.byMethod && r.byMethod.Transferencia) || 0;
+  if (legacyTrH > 0) hlines.push('   - \u00b7 Transferencia (dato anterior): <b>' + esc(fmtM(legacyTrH)) + '</b>');
+  hlines.push('   - Transferencias: <b>' + esc(fmtM(r.totalTransfer || 0)) + '</b>');
   if (r.totalNoMethod > 0) hlines.push('   - Sin m\u00e9todo registrado: <b>' + esc(fmtM(r.totalNoMethod)) + '</b>');
   hlines.push(hBULLET + ' Proyectado: <b>' + esc(fmtM(r.projected)) + '</b>');
   hlines.push('');
@@ -2002,6 +2066,75 @@ function initSheets(ss) {
   const names = Object.values(SHEETS);
   const existing = ss.getSheets().map(s=>s.getName());
   names.forEach(n=>{ if(!existing.includes(n)) ss.insertSheet(n); });
+}
+
+/* ── Hoja Config (clave/valor) ──
+   Parámetros del negocio que SÍ viven en Google Sheets para verlos y
+   editarlos desde cualquier dispositivo. Hoy hay una sola clave:
+   `opening_balance` (saldo inicial con el que se abrió la caja).
+   La dueña puede editar la celda directo en la hoja: el frontend la
+   relee en cada refresco (≤30 s) y todos los dispositivos se actualizan.
+   Se vacía CON EL RESET (`_resetData`): resetear es eliminar todo. */
+const CONFIG_OPENING_KEY = 'opening_balance';
+const CONFIG_HEADERS = ['Clave', 'Valor', 'Actualizado'];
+
+function _configSheet(ss) {
+  var sh = ss.getSheetByName(SHEETS.config) || ss.insertSheet(SHEETS.config);
+  if (sh.getLastRow() === 0) sh.getRange(1, 1, 1, 3).setValues([CONFIG_HEADERS]);
+  return sh;
+}
+
+// Tolerante a edición manual: 500000, '500.000', '500,000' o '500.5'
+// → número ≥0; negativos o basura → 0 (misma semántica que clip0).
+function _parseAmount(v) {
+  if (typeof v === 'number') return (v !== v || v < 0) ? 0 : v;
+  var s = String(v === null || v === undefined ? '' : v).trim()
+    .replace(/,/g, '.').replace(/[^\d.-]/g, '');
+  if (!s) return 0;
+  var parts = s.split('.');
+  // '500.000' / '1.234.567' son MILES (3 dígitos finales); '500.5' es decimal.
+  var miles = parts.length > 1 && parts.length < 4 && parts[parts.length - 1].length === 3;
+  var n = Number(miles ? parts.join('') : parts.join('.'));
+  return (n !== n || n < 0) ? 0 : n;
+}
+
+function _readConfig(ss) {
+  var sh = _configSheet(ss);
+  var out = { openingBalance: 0 };
+  var last = sh.getLastRow();
+  if (last < 2) return out;
+  var rows = sh.getRange(2, 1, last - 1, 3).getValues();
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === CONFIG_OPENING_KEY) {
+      out.openingBalance = _parseAmount(rows[i][1]);
+      break;
+    }
+  }
+  return out;
+}
+
+function _writeConfig(ss, cfg) {
+  if (!cfg || typeof cfg !== 'object') return;
+  var sh = _configSheet(ss);
+  if (cfg.openingBalance !== undefined && cfg.openingBalance !== null) {
+    _setConfigRow(sh, CONFIG_OPENING_KEY, _parseAmount(cfg.openingBalance));
+  }
+}
+
+// Actualiza la fila de una clave o la agrega al final (append sobre la
+// última fila escrita, igual que hace la edición manual en la hoja).
+function _setConfigRow(sh, key, value) {
+  var last = sh.getLastRow();
+  var row = -1;
+  if (last >= 2) {
+    var rows = sh.getRange(2, 1, last - 1, 3).getValues();
+    for (var i = 0; i < rows.length; i++) {
+      if (String(rows[i][0]).trim() === key) { row = 2 + i; break; }
+    }
+  }
+  var data = [String(key), value, new Date().toISOString()];
+  if (row > 0) sh.getRange(row, 1, 1, 3).setValues([data]);
+  else sh.getRange(sh.getLastRow() + 1, 1, 1, 3).setValues([data]);
 }
 
 function readSheet(ss,key) {

@@ -9,7 +9,7 @@ React 18 + Vite · Google Apps Script + Sheets + Calendar · Deploy en Vercel
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
-[![Tests](https://img.shields.io/badge/Tests-317_passing-brightgreen)](#-testing)
+[![Tests](https://img.shields.io/badge/Tests-339_passing-brightgreen)](#-testing)
 [![Deploy](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 [![Backend](https://img.shields.io/badge/Backend-Google_Apps_Script-34A853?logo=googleapps&logoColor=white)](https://script.google.com)
 
@@ -64,8 +64,11 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 - **Cita a domicilio** con valor adicional y dirección opcional.
 - **Múltiples servicios por cita** (combo) con cálculo automático del total.
 - Estados: **Pendiente · Completada · No asistió**, con **método de pago**
-  (Efectivo / Transferencia) al completar.
-- Agrupación en acordeón: **Hoy · Mañana · Próximas · No asistió · Pasadas**.
+  (Efectivo / Nequi / Daviplata / Bancolombia — las tres últimas son
+  transferencias) al completar. Las citas antiguas pagadas en
+  **«Transferencia»** siguen contando en el reporte, con su renglón heredado.
+- Agrupación en acordeón: **Hoy · Mañana · Próximas · No asistió · Pasadas**
+  (el grupo **Pasadas** se pagina de **20 en 20**).
 - **Solo las citas pendientes** se pueden editar o eliminar (regla compartida
   por la pestaña Citas y el Calendario).
 - Edición de cita preservando el **precio que tenía al momento de crearla**
@@ -75,7 +78,10 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 
 ### 👥 Clientes
 - Base de clientes con **búsqueda por celular** (sufijo primero, luego subcadena).
-- **Historial de cada cliente**: citas, montos, última visita.
+- **Historial de cada cliente**: citas, montos, última visita y **aviso de
+  inasistencias** («Faltó X de sus últimas Y citas»).
+- **Aviso de inasistencias al agendar**: si la clienta faltó 2+ veces en sus
+  últimas citas, el asistente muestra un recuadro rojo al elegirla.
 - Registro automático al agendar (no hay que dar de alta al cliente antes).
 
 ### ✂️ Servicios
@@ -86,7 +92,9 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
   o en curso. La regla la valida **también el backend**, no solo el botón.
 
 ### 💰 Finanzas
-- **Balance neto** (ingresos recibidos − gastos) general y por mes.
+- **Balance neto** (ingresos recibidos − gastos) general y por mes. En el
+  Panel (vista **General**), el saldo inicial **no se mezcla**: va aparte, a
+  la derecha en letra chica («Con saldo inicial …»).
 - **Recibido · Pendiente · Proyectado** (lo cobrado vs. lo que falta por cobrar).
 - Gastos por **categoría** (Insumos, Arriendo, Publicidad…) con colores
   personalizables.
@@ -117,10 +125,16 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 - Toca un día para ver/abrir sus citas.
 
 ### ⚙️ Ajustes
-- **6 paletas de color** (Rosa · Morado · Azul · Verde · Dorado · Fucsia) +
-  **modo claro/oscuro**, guardados en el navegador.
+- **9 paletas de color** (Rosa · Morado · Azul · Verde · Dorado · Fucsia ·
+  Coral · Salvia · Carbón) + **modo claro/oscuro**, guardados en el navegador.
+- **Saldo inicial** del negocio: guardado en **Google Sheets** (hoja «Config»)
+  y sincronizado entre navegador y celulares (también se puede editar la celda
+  directo en la hoja). El Panel lo muestra **aparte, a la derecha** del Balance
+  Neto en la vista General, nunca mezclado.
 - **Restablecimiento del sistema** protegido por **código enviado al correo**
-  del propietario (un solo uso, con vencimiento y límite de intentos).
+  del propietario (un solo uso, con vencimiento y límite de intentos), con
+  botón **📥 Descargar Excel de respaldo** (informe Resumen · Movimientos ·
+  Citas de todo el histórico + hoja Clientes) antes de confirmar.
 
 ### 🔔 Extras de experiencia
 - **Recordatorios por WhatsApp con 1 clic** (mensaje pre-escrito con emoji,
@@ -130,7 +144,9 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 - **Sincronización automática cada 30 s**, pausada cuando la pestaña no está
   visible.
 - **Modo sin conexión**: si falla la red, se sigue trabajando con respaldo en
-  `localStorage`.
+  `localStorage`. Si el fallo es al **guardar**, aparece una **franja roja con
+  botón «↻ Reintentar guardar»** que reenvía lo pendiente; el Panel no se
+  refresca por su cuenta mientras ese aviso esté visible.
 - **Branding dinámico**: nombre, subtítulo, emoji y logo del negocio desde
   variables de entorno (título y favicon se actualizan en runtime).
 - **Respaldo automático** de la hoja en Google Drive (diario, 30 días de
@@ -148,7 +164,7 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 | Tests | **Vitest** + **jsdom** | 1.6 |
 | Lint / formato | **ESLint** + **Prettier** | ESLint 8.57 · Prettier 3.3 |
 | Backend | **Google Apps Script** (`apps-script/Code.gs`), runtime V8 | — |
-| Base de datos | **Google Sheets** (5 hojas: Clientes, Servicios, Citas, Gastos, HistorialPrecios) | — |
+| Base de datos | **Google Sheets** (6 hojas: Clientes, Servicios, Citas, Gastos, HistorialPrecios, Config) | — |
 | Agenda | **Google Calendar** (vía Apps Script) | — |
 | Correo | **GmailApp** (reportes automáticos, respaldos y códigos de recuperación) | — |
 | Hosting | **Vercel** (frontend estático) | — |
@@ -175,7 +191,7 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
                                               ▼                            ▼                      ▼
                                        ┌──────────────┐         ┌─────────────────┐    ┌───────────────────┐
                                        │ Google Sheets│         │ Google Calendar │    │ GmailApp          │
-                                       │ (5 hojas/BD) │         │ (eventos cita)  │    │ (reportes+respaldo│
+                                       │ (6 hojas/BD) │         │ (eventos cita)  │    │ (reportes+respaldo│
                                        └──────────────┘         └─────────────────┘    │  +código de reset)│
                                                                                       └───────────────────┘
 ```
@@ -204,6 +220,9 @@ WXYZ/
 ├── .env.example               # Plantilla de variables de entorno
 ├── logo.png                   # Logo / apple-touch-icon
 │
+├── public/                    # Assets estáticos (Vite los copia a dist/ tal cual)
+│   └── img/pagos/             # Logos de métodos de pago (nequi, daviplata, bancolombia)
+│
 ├── README.md                  # ← Estás aquí
 ├── SETUP.md                   # Guía de despliegue original (preexistente)
 ├── SESION_2026-08-04.md       # Bitácora de desarrollo (preexistente)
@@ -219,18 +238,19 @@ WXYZ/
 │
 ├── src/
 │   ├── main.jsx               # Entry point de React
-│   ├── App.jsx                # 🟡 Toda la UI (~4.490 líneas): componentes y estado
+│   ├── App.jsx                # 🟡 Toda la UI (~5.500 líneas): componentes y estado
 │   ├── api.js                 # load/save contra el Web App de Apps Script
-│   ├── helpers.js             # Funciones puras (~857 líneas) — la fuente de las reglas
+│   ├── helpers.js             # Funciones puras (~900 líneas) — la fuente de las reglas
 │   ├── catalogs.js            # Catálogos por tipo de negocio (VITE_CATALOG)
 │   ├── index.css              # Reset mínimo
 │   ├── api.test.js            # Tests del módulo de transporte
 │   ├── helpers.test.js        # Tests unitarios de helpers
 │   ├── catalogs.test.js       # Tests de los catálogos iniciales
+│   ├── excel.test.js          # Tests del libro Excel de reportes y respaldos
 │   └── backend.test.js        # Ejecuta el Code.gs REAL dentro de un sandbox
 │
 └── apps-script/               # 🟢 Backend (desplegar en Google Apps Script)
-    ├── Code.gs                # Lógica completa (~2.072 líneas)
+    ├── Code.gs                # Lógica completa (~2.250 líneas)
     ├── appsscript.json        # Manifiesto ACTIVO (scopes + zona horaria)
     └── appsscript.json.txt    # Manifiesto alternativo (preexistente; ver docs)
 ```
@@ -312,6 +332,15 @@ Copia `.env.example` a `.env` (local) o configúralas en
 | `VITE_DEFAULT_SERVICES` | — | pública | Lista JSON con los servicios exactos del cliente. **Tiene prioridad** sobre `VITE_CATALOG` |
 | `VITE_ADMIN_WHATSAPP` | — | ⚠️ **personal** | Número de WhatsApp del admin, destino del botón «💬 WhatsApp admin». Sin número, el botón sale **deshabilitado** |
 
+> 🗂 **Categorías de catálogo:** `VITE_CATALOG` acepta **8 claves** y cada
+> una deja listos entre 9 y 11 servicios con precios y duraciones típicos
+> del negocio — `cejas` (defecto), `unas`, `peluqueria`, `barberia`,
+> `depilacion`, `masajes`, `estetica` y `maquillaje`. Solo puebla el
+> **primer arranque** (y un restablecimiento). Paso a paso y detalle por
+> categoría en [`docs/MANUAL_TECNICO.md`](docs/MANUAL_TECNICO.md) →
+> **C.1.1**; cómo llevarlo a un cliente nuevo, en
+> [`docs/ONBOARDING_CLIENTE.md`](docs/ONBOARDING_CLIENTE.md) → **§2**.
+
 > ⚠️ **Todas las variables `VITE_*` quedan embebidas en el JavaScript del
 > navegador** una vez compilado. Por eso **`VITE_TOKEN` no es un secreto
 > efectivo**: el auténtico vive en Apps Script (`SB_SYNC_TOKEN`). El número del
@@ -379,15 +408,16 @@ Detalle completo en [`docs/MANUAL_TECNICO.md`](docs/MANUAL_TECNICO.md) sección 
 
 ## 🧪 Testing
 
-Hay **317 pruebas** en 4 suites, ejecutadas y verificadas en esta ronda de
+Hay **339 pruebas** en 5 suites, ejecutadas y verificadas en esta ronda de
 documentación:
 
 | Suite | Pruebas | Qué cubre |
 |---|---:|---|
-| `src/helpers.test.js` | 165 | Lógica pura: fechas, slots, teléfono, duraciones, estados, finanzas, reportes |
-| `src/backend.test.js` | 131 | **Ejecuta el `Code.gs` real** en un sandbox (`node:vm`): API, reset, Calendar, reportes, Excel, paridad correo/WhatsApp y marca de los correos (`SB_BIZ_NAME`) |
+| `src/helpers.test.js` | 171 | Lógica pura: fechas, slots, teléfono, duraciones, estados, finanzas, reportes |
+| `src/backend.test.js` | 144 | **Ejecuta el `Code.gs` real** en un sandbox (`node:vm`): API, reset, Calendar, reportes, Excel, paridad correo/WhatsApp y marca de los correos (`SB_BIZ_NAME`) |
 | `src/catalogs.test.js` | 14 | Catálogo inicial por tipo de negocio (`VITE_CATALOG` / `VITE_DEFAULT_SERVICES`) |
 | `src/api.test.js` | 7 | Transporte: mensajes de error, `loadData`/`saveData`, restablecimiento |
+| `src/excel.test.js` | 3 | Libro Excel (`buildReportWorkbook`): Resumen/Movimientos/Citas, hoja Clientes y las 9 paletas |
 
 ```bash
 npm test              # una vez
@@ -405,7 +435,7 @@ npm run build         # build de producción
 
 | Pestaña | Para qué sirve |
 |---|---|
-| **Panel** | Resumen del día: citas de hoy, citas por recordar, balance neto, accesos. |
+| **Panel** | Resumen del día: citas de hoy (con ✓ completada o ✗ No asistió), citas por recordar, balance neto, accesos. |
 | **Citas** | Crear/editar/eliminar citas, marcar completada o no asistió, enviar WhatsApp. |
 | **Clientes** | Buscar y administrar clientes; ver historial individual. |
 | **Servicios** | Catálogo, precios y duración; el historial de precios se guarda automáticamente. |
@@ -456,8 +486,11 @@ Confirmadas en el código, no corregidas:
   existe (para que pueda ir a otro correo) y si no, la misma.
   **Si faltan esas propiedades no se envía nada** (el reset no gasta su cupo
   de solicitudes y los reportes/backups se omiten avisando en el log).
-- **El restablecimiento borra todo** (clientes, citas, gastos y eventos de
-  Calendar) y **no se puede deshacer**.
+- **El restablecimiento borra todo** (clientes, citas, gastos, el saldo
+  inicial —hoja «Config»— y los eventos de Calendar) y **no se puede
+  deshacer**. Mitigación: la pantalla de reset ofrece **📥 descargar un Excel
+  de respaldo** (informe Resumen · Movimientos · Citas de todo el histórico +
+  hoja Clientes) antes de confirmar.
 - **`writeSheet` reescribe la hoja completa** en cada guardado: cualquier fila
   que alguien haya escrito a mano **fuera de las columnas esperadas se pierde**.
 
