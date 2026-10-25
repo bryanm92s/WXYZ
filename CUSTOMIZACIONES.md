@@ -31,3 +31,6 @@
   (✓/✗) — hoy solo desde media hora antes de la hora de la cita
   («⏰ Podrás marcarla desde las …»), día futuro nunca, desmarcar
   siempre. Frontend puro: sin pasos de Apps Script.
+- 2026-10-25 · madre @ 6328dd4 (docs): tip del iPhone — el calendario
+  compartido no aparece solo: activarlo en la app de Google Calendar o
+  vía `calendar.google.com/calendar/syncselect` en Safari.
