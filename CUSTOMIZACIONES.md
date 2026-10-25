@@ -36,3 +36,6 @@
   vía `calendar.google.com/calendar/syncselect` en Safari.
 - 2026-10-25 · madre @ 54ededc (higiene): `.gitignore` excluye
   `.agents/` y `skills-lock.json` (tooling local del workspace).
+- 2026-10-25 · madre @ 91e020e (marca): el footer firma **OcupadAPP**
+  («Hecho con Ocupad» + APP en itálica del tema) en vez del crédito
+  personal; `APP_NAME` junto a las `VITE_BIZ_*`.
