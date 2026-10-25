@@ -24,3 +24,6 @@
   correo», borrado de eventos clasificado + anti-duplicados + `escr`,
   12 paletas AA, capa de conexión con reintentos, «📅 Ir a cita», emoji
   dinámico del Panel, 377 tests.
+- 2026-10-25 · madre @ 3d597f2: grupo «Sin marcar» (citas pasadas sin
+  decisión) en Citas + rastro dorado y marcado en el sitio en el
+  Calendario. Frontend puro: sin pasos de Apps Script.
