@@ -27,3 +27,7 @@
 - 2026-10-25 · madre @ 3d597f2: grupo «Sin marcar» (citas pasadas sin
   decisión) en Citas + rastro dorado y marcado en el sitio en el
   Calendario. Frontend puro: sin pasos de Apps Script.
+- 2026-10-25 · madre @ 98c954e: ventana de **30 minutos** para marcar
+  (✓/✗) — hoy solo desde media hora antes de la hora de la cita
+  («⏰ Podrás marcarla desde las …»), día futuro nunca, desmarcar
+  siempre. Frontend puro: sin pasos de Apps Script.
