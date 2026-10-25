@@ -215,23 +215,60 @@ function makeDriveFolder(nombre, hijos) {
    NO toca ningún calendario real. */
 function makeCalendar(store) {
   const events = new Map()
+  // Dueno de cada evento: 'default' o el id del calendario SECUNDARIO
+  // (SB_CALENDAR_ID). Reproduce que un evento creado en un calendario
+  // NO aparece al buscar dentro de otro.
+  const owners = new Map()
   let seq = 0
 
   const api = {
     // Interruptores para simular fallos de Google Calendar en los tests.
     ignoreSetTime: false,   // setTime no aplica el cambio (sin lanzar)
     failDelete: false,      // deleteEvent lanza una excepción
+    failDeleteRemoves: false, // …y además SÍ borra (excepción que llegó tarde)
+    failCreate: false,      // createEvent lanza una excepción (permiso de escritura)
     _events: events,
     seed: (id, { title = '', start, end, description = '' } = {}) => {
       events.set(id, { id, title, start, end, description })
+      owners.set(id, 'default')
       return id
     },
     get: (id) => (events.has(id) ? wrap(events.get(id)) : null),
-    create: (title, start, end, description) => {
+    // Solo si el evento vive en EL calendario indicado (búsqueda propia).
+    getOwn: (id, owner) =>
+      (events.has(id) && owners.get(id) === owner ? wrap(events.get(id)) : null),
+    create: (title, start, end, description, owner) => {
       const id = 'cal' + (++seq) + '@google.com'
       events.set(id, { id, title, start, end, description })
+      owners.set(id, owner || 'default')
       store.calCreated.push(id)
       return id
+    },
+    // Lo que usa el deleteEvent del propio evento creado en el mock.
+    remove: (id) => {
+      if (!events.has(id)) return false
+      store.calDeleted.push(id)
+      events.delete(id)
+      owners.delete(id)
+      return true
+    },
+    // Ventana de eventos en [from, to] (lo que usa la protección
+    // anti-duplicados de createCalEvent): todos o solo de un calendario.
+    window: (from, to) => {
+      const f = from && from.getTime ? from.getTime() : -Infinity
+      const t = to && to.getTime ? to.getTime() : Infinity
+      const list = []
+      events.forEach(ev => { if (ev.start.getTime() >= f && ev.start.getTime() <= t) list.push(wrap(ev)) })
+      return list
+    },
+    windowOwn: (owner, from, to) => {
+      const f = from && from.getTime ? from.getTime() : -Infinity
+      const t = to && to.getTime ? to.getTime() : Infinity
+      const list = []
+      events.forEach(ev => {
+        if (owners.get(ev.id) === owner && ev.start.getTime() >= f && ev.start.getTime() <= t) list.push(wrap(ev))
+      })
+      return list
     },
     size: () => events.size,
   }
@@ -255,9 +292,16 @@ function makeCalendar(store) {
         ev.start = s; ev.end = e
       },
       deleteEvent: () => {
-        if (api.failDelete) throw new Error('No se pudo eliminar el evento')
+        if (api.failDelete) {
+          if (api.failDeleteRemoves) {   // Google a veces borra y AÚN así lanza
+            events.delete(ev.id)
+            owners.delete(ev.id)
+          }
+          throw new Error('No se pudo eliminar el evento')
+        }
         store.calDeleted.push(ev.id)
         events.delete(ev.id)
+        owners.delete(ev.id)
       },
     }
   }
@@ -273,6 +317,10 @@ function makeStore() {
     // de tests no tenga que pensarlo.
     props: new Map([['SB_SYNC_TOKEN', TOKEN], ['SB_AUTHORIZED_EMAIL', AUTHORIZED_EMAIL]]), mail: [], logs: [],
     calLookups: [], calDeleted: [], calCreated: [],
+    // Calendario SECUNDARIO (SB_CALENDAR_ID): ids que la «cuenta» del
+    // sandbox puede abrir, de dónde salió cada evento creado y en qué
+    // calendario se buscó cada id.
+    calIds: new Set(), calCreatedFrom: [], calDedLookups: [],
     // Libros temporales del Excel adjunto, descargas y papelera.
     books: [], fetched: [], trashed: [],
     // Árbol de carpetas simulado para sendWeeklyBackupEmail (null = no
@@ -348,6 +396,9 @@ function runCodeGs(ss, store = makeStore()) {
       warn:  (...a) => store.logs.push(a.join(' ')),
       error: (...a) => store.logs.push(a.join(' ')),
     },
+    // Logger.log es lo que ve «Registro de ejecuciones → Registros» en
+    // el editor: lo usa pruebaCalendario() (diagnóstico manual).
+    Logger: { log: (...a) => store.logs.push(a.join(' ')) },
     LockService: {
       getScriptLock: () => ({
         waitLock() {
@@ -401,6 +452,22 @@ function runCodeGs(ss, store = makeStore()) {
         createHash('sha256').update(String(str), 'utf8').digest(),
         b => (b > 127 ? b - 256 : b)
       ),
+      // Adjuntos del correo manual (sendReportEmailNow): base64 → bytes.
+      // ESTRICTO como el Apps Script real: lanza con caracteres ilegales
+      // (Node solo ignora los inválidos, y eso haría pasar basura).
+      base64Decode: (s) => {
+        const str = String(s)
+        if (str.length % 4 === 1 || /[^A-Za-z0-9+/=]/.test(str)) throw new Error('Invalid argument: Illegal base64')
+        return Array.from(Buffer.from(str, 'base64'))
+      },
+      newBlob: (bytes, contentType, name) => ({
+        getBytes: () => bytes,
+        getContentType: () => contentType,
+        getName: () => name,
+        // UTF-8, como el Apps Script real: es lo que usa sendReportEmailNow
+        // para decodificar el texto del reporte que llegó en base64.
+        getDataAsString: () => Buffer.from(bytes).toString('utf8'),
+      }),
     },
     // Script Properties: centralizado en el servidor, nunca en el frontend.
     PropertiesService: {
@@ -416,8 +483,12 @@ function runCodeGs(ss, store = makeStore()) {
     // plano, y `attachments` (el Excel del reporte).
     GmailApp: {
       sendEmail: (to, subject, body, opts) => {
+        // Para simular el rechazo crudo de Gmail («Invalid To header»)
+        // y verificar que sendReportEmailNow lo traduce a algo simple.
+        if (store.failSend) throw new Error(store.failSend)
         store.mail.push({
           to, subject, body,
+          cc: (opts && opts.cc) || '',
           htmlBody: (opts && opts.htmlBody) || '',
           attachments: (opts && opts.attachments) || [],
         })
@@ -504,13 +575,44 @@ function runCodeGs(ss, store = makeStore()) {
     },
     // Calendar simulado en memoria (ver makeCalendar): crear, buscar,
     // actualizar y borrar quedan registrados sin tocar Calendar real.
+    // `getCalendarById` reproduce el calendario SECUNDARIO opcional
+    // (SB_CALENDAR_ID): solo responde a los ids sembrados en
+    // `store.calIds` y devuelve null para el resto, como Google.
     CalendarApp: {
       getDefaultCalendar: () => ({
         createEvent: (title, s, e, opts) => {
-          const id = store.cal.create(title, s, e, opts && opts.description)
-          return { getId: () => id, setColor: () => {} }
+          const id = store.cal.create(title, s, e, opts && opts.description, 'default')
+          store.calCreatedFrom.push('default')
+          return { getId: () => id, setColor: () => {}, deleteEvent: () => store.cal.remove(id) }
         },
+        getEventById: (id) => {
+          store.calLookups.push(String(id === undefined || id === null ? '' : id))
+          return store.cal.get(id)
+        },
+        // Ventana de eventos (lo que usa la protección anti-duplicados
+        // de createCalEvent): los eventos cuyo inicio cae en [from, to].
+        getEvents: (from, to) => store.cal.window(from, to),
       }),
+      getCalendarById: (id) => {
+        const key = String(id === undefined || id === null ? '' : id)
+        if (!store.calIds.has(key)) return null     // no existe / no es accesible
+        return {
+          getName: () => 'Citas ' + key,   // lo que imprime pruebaCalendario()
+          createEvent: (title, s, e, opts) => {
+            if (store.cal.failCreate) throw new Error('No tienes acceso para escribir en este calendario') // como un calendario compartido en «Ver los detalles»
+            const cid = store.cal.create(title, s, e, opts && opts.description, key)
+            store.calCreatedFrom.push(key)
+            return { getId: () => cid, setColor: () => {}, deleteEvent: () => store.cal.remove(cid) }
+          },
+          // Búsqueda PROPIA: solo ve lo creado en ESTE calendario.
+          getEventById: (id) => {
+            store.calDedLookups.push(String(id === undefined || id === null ? '' : id))
+            return store.cal.getOwn(id, key)
+          },
+          // Ventana de eventos del calendario dedicado (anti-duplicados).
+          getEvents: (from, to) => store.cal.windowOwn(key, from, to),
+        }
+      },
       getEventById: (id) => {
         store.calLookups.push(String(id === undefined || id === null ? '' : id))
         return store.cal.get(id)
@@ -1220,6 +1322,32 @@ describe('Code.gs — sincronización con Google Calendar', () => {
   const readAppt = (env) => env.g.call('readSheet', env.ss, 'appointments')[0]
   const cal = (env, id) => env.store.cal._events.get(id)
 
+  it('0) createCalEvent es ANTI-DUPLICADOS: reenviar el mismo evento (reintento tras una respuesta perdida) devuelve el existente', () => {
+    const { env } = seed({}, { withEvent: false })
+    const evt = { clientName: 'Ana', clientPhone: '300111', serviceNames: S1.name,
+                  totalPrice: '50000', date: '2099-06-20', time: '10:00', duration: 30 }
+
+    // Primer intento: crea el evento de verdad…
+    const a = env.g.call('createCalEvent', evt)
+    expect(a.ok).toBe(true)
+    expect(a.eventId).toBeTruthy()
+
+    // …pero la respuesta se pierde y el cliente REINTENTA: no debe quedar
+    // un segundo evento igual en Google Calendar.
+    const b = env.g.call('createCalEvent', evt)
+    expect(b.ok).toBe(true)
+    expect(b.eventId).toBe(a.eventId)
+    expect(b.alreadyExisted).toBe(true)
+    expect(env.store.cal._events.size).toBe(1)
+    expect(env.store.calCreated.length).toBe(1)     // solo se creó UNO
+
+    // Una cita DISTINTA (otra hora) sí crea su propio evento.
+    const c = env.g.call('createCalEvent', { ...evt, time: '11:00' })
+    expect(c.ok).toBe(true)
+    expect(c.eventId).not.toBe(a.eventId)
+    expect(env.store.calCreated.length).toBe(2)
+  })
+
   it('1) actualizar un evento existente cambia su hora de inicio', () => {
     const { env } = seed()
     const r = post(env.g, {
@@ -1354,18 +1482,35 @@ describe('Code.gs — sincronización con Google Calendar', () => {
     expect(bp.data.calResult.code).toBe('bad_payload')
   })
 
-  it('8) un error al eliminar Calendar se detecta', () => {
+  it('8) un error al eliminar Calendar se detecta y se CLASIFICA: el evento sigue → permiso', () => {
     const { env } = seed()
     env.store.cal.failDelete = true
 
     const r = post(env.g, { action: 'deleteCalendarEvent', eventId: EVT })
     expect(r.ok).toBe(true)
     expect(r.data.calResult.ok).toBe(false)     // no se oculta el fallo
-    expect(r.data.calResult.code).toBe('exception')
-    expect(r.data.calResult.error).toMatch(/No se pudo eliminar/)
+    // ⚠️ Cambio 2026-10: Google llama «No existe o se eliminó…» a SUS fallos
+    // de permiso; ahora el backend verifica de verdad y devuelve un código
+    // claro con la corrección concreta (permiso «Realizar cambios…»).
+    expect(r.data.calResult.code).toBe('still_exists')
+    expect(r.data.calResult.error).toMatch(/sigue en Google Calendar/)
+    expect(r.data.calResult.error).toMatch(/Realizar cambios y ver los detalles/)
+    expect(r.data.calResult.error).toMatch(/Ver los detalles/)
     // El evento sigue ahí: no se reportó una eliminación que no ocurrió.
     expect(env.store.cal._events.has(EVT)).toBe(true)
     expect(env.store.calDeleted).toEqual([])
+  })
+
+  it('8b) la excepción que llegó tarde (Google borró y aun así lanzó) se reconoce', () => {
+    const { env } = seed()
+    env.store.cal.failDelete = true
+    env.store.cal.failDeleteRemoves = true      // borra el evento Y lanza
+
+    const r = post(env.g, { action: 'deleteCalendarEvent', eventId: EVT })
+    // La verificación gana a la excepción: el evento ya no está.
+    expect(r.data.calResult.ok).toBe(true)
+    expect(r.data.calResult.deleted).toBe(true)
+    expect(env.store.cal._events.has(EVT)).toBe(false)
   })
 
   it('9) un evento que ya no existe se gestiona sin generar una falsa eliminación', () => {
@@ -2984,8 +3129,9 @@ describe('REPORTE: el correo lleva el Excel adjunto', () => {
      · `SB_BACKUP_EMAIL` manda para el backup si está configurada.
      · Si no está, el backup va a `SB_AUTHORIZED_EMAIL` (como
        siempre: nadie que no la configure pierde su backup).
-   Lo que NO se toca: los códigos de recuperación y los reportes
-   salen de `SB_AUTHORIZED_EMAIL` siempre.
+   Lo que NO se toca: los códigos de recuperación salen SIEMPRE de
+   `SB_AUTHORIZED_EMAIL` y los reportes de `SB_REPORT_EMAIL` cuando
+   existe (y si no, de `SB_AUTHORIZED_EMAIL`, como siempre).
    ══════════════════════════════════════════════════════════════ */
 describe('BACKUP SEMANAL — destinatario (SB_BACKUP_EMAIL)', () => {
   const BACKUP_EMAIL = 'copias@sz.test'
@@ -3065,6 +3211,232 @@ describe('BACKUP SEMANAL — destinatario (SB_BACKUP_EMAIL)', () => {
     expect(post(g, { action: 'requestResetCode' }).ok).toBe(true)
     expect(store.mail.length).toBe(1)
     expect(store.mail[0].to).toBe(AUTHORIZED_EMAIL)
+  })
+})
+
+
+/* ══════════════════════════════════════════════════════════════
+   DESTINATARIOS POR PROYECTO — una cuenta de Google por despliegue
+   ────────────────────────────────────────────────────────────
+   Modelo nuevo: cada proyecto tiene SU cuenta de Google (dueña de la
+   hoja, el script y el calendario) y los correos se reparten así:
+     · `SB_AUTHORIZED_EMAIL` → LISTA de seguridad: el código de
+       restablecimiento sale a todas las direcciones (la cuenta del
+       proyecto Y la usuaria, p. ej.).
+     · `SB_REPORT_EMAIL`     → a quién van los 4 reportes; si falta,
+       siguen yendo a la lista de seguridad.
+   Ninguna petición pública altera esas propiedades, y un valor mal
+   escrito nunca hace fallar el envío entero.
+   ══════════════════════════════════════════════════════════════ */
+describe('DESTINATARIOS POR PROYECTO — listas de correo', () => {
+  const PROY = 'proyecto@sz.test'      // cuenta del proyecto (tú)
+  const USER = 'usuaria@cliente.test'  // la clienta
+
+  const env = () => runCodeGs(makeSpreadsheet({ services: [toRow('services', S1)] }))
+
+  // Mismo disparador que los triggers: reporte del día de `store.now`.
+  const enviarReporte = (g) => {
+    g.call('_sendReportEmail', { type: 'day', day: '2026-01-15' }, 'DIARIO')
+    return g.store.mail[g.store.mail.length - 1]
+  }
+
+  it('SB_AUTHORIZED_EMAIL admite varias direcciones: el código sale a todas en UN envío', () => {
+    const g = env()
+    g.store.props.set('SB_AUTHORIZED_EMAIL', `${PROY}, ${USER}`)
+
+    // _authorizedEmail() devuelve la lista ya normalizada.
+    expect(g.call('_authorizedEmail')).toBe(`${PROY}, ${USER}`)
+
+    expect(post(g, { action: 'requestResetCode' }).ok).toBe(true)
+    expect(g.store.mail.length).toBe(1)                       // un solo envío…
+    expect(g.store.mail[0].to).toBe(`${PROY}, ${USER}`)       // …a las dos
+    expect(lastCode(g.store)).toBeTruthy()                    // y el código llega legible
+  })
+
+  it('una dirección mal escrita se descarta sin romper el envío a las válidas', () => {
+    const g = env()
+    g.store.props.set('SB_AUTHORIZED_EMAIL', `  ${PROY} ,, sin-arroba, ${USER} `)
+
+    expect(g.call('_authorizedEmail')).toBe(`${PROY}, ${USER}`)
+    expect(post(g, { action: 'requestResetCode' }).ok).toBe(true)
+    expect(g.store.mail[0].to).toBe(`${PROY}, ${USER}`)
+  })
+
+  it('sin NINGUNA dirección válida se comporta como «sin configurar»', () => {
+    const g = env()
+    g.store.props.set('SB_AUTHORIZED_EMAIL', 'sin-arroba')
+
+    expect(g.call('_authorizedEmail')).toBe('')
+    // Misma respuesta que siempre (no revela configuración) y sin
+    // gastar el cupo de solicitudes, para poder corregirlo y reintentar.
+    expect(post(g, { action: 'requestResetCode' }).ok).toBe(true)
+    expect(g.store.mail.length).toBe(0)
+    expect(JSON.stringify(g.store.logs)).toContain('SB_AUTHORIZED_EMAIL')
+  })
+
+  it('SB_REPORT_EMAIL manda los reportes y NO mueve los códigos', () => {
+    const g = env()
+    g.store.props.set('SB_REPORT_EMAIL', USER)
+
+    expect(g.call('_reportEmail')).toBe(USER)
+    expect(enviarReporte(g).to).toBe(USER)
+
+    // El código de reset sigue en la lista de seguridad, sin cambios.
+    expect(g.call('_authorizedEmail')).toBe(AUTHORIZED_EMAIL)
+    expect(post(g, { action: 'requestResetCode' }).ok).toBe(true)
+    expect(g.store.mail[g.store.mail.length - 1].to).toBe(AUTHORIZED_EMAIL)
+  })
+
+  it('sin SB_REPORT_EMAIL el reporte se queda en SB_AUTHORIZED_EMAIL (como siempre)', () => {
+    const g = env()
+    expect(g.call('_reportEmail')).toBe(AUTHORIZED_EMAIL)
+    expect(enviarReporte(g).to).toBe(AUTHORIZED_EMAIL)
+  })
+
+  it('SB_REPORT_EMAIL acepta varias direcciones y, si no trae ninguna válida, cae a la de seguridad', () => {
+    const g = env()
+
+    g.store.props.set('SB_REPORT_EMAIL', `${PROY}; ${USER}`)
+    expect(g.call('_reportEmail')).toBe(`${PROY}, ${USER}`)
+    expect(enviarReporte(g).to).toBe(`${PROY}, ${USER}`)
+
+    g.store.props.set('SB_REPORT_EMAIL', '  ,  ')
+    expect(g.call('_reportEmail')).toBe(AUTHORIZED_EMAIL)
+  })
+
+  it('los reportes no dependen de la lista de seguridad: SB_REPORT_EMAIL basta', () => {
+    const g = env()
+    g.store.props.set('SB_REPORT_EMAIL', USER)
+    g.store.props.delete('SB_AUTHORIZED_EMAIL')
+
+    expect(enviarReporte(g).to).toBe(USER)
+    expect(g.store.mail.length).toBe(1)
+  })
+})
+
+
+/* ══════════════════════════════════════════════════════════════
+   CALENDARIO DEDICADO — SB_CALENDAR_ID
+   ────────────────────────────────────────────────────────────
+   Cada proyecto puede escribir las citas en un calendario
+   SECUNDARIO de su cuenta (p. ej. «Citas <negocio>»), que se
+   comparte con la usuaria en SOLO LECTURA. Reglas probadas aquí:
+     · sin la propiedad → calendario por defecto (como siempre);
+     · id inaccesible   → cae al por defecto y lo avisa en el log
+       (nunca se pierde una cita);
+     · crear, actualizar y borrar usan el dedicado;
+     · un evento creado ANTES de configurarlo sigue localizable.
+   ══════════════════════════════════════════════════════════════ */
+describe('CALENDARIO DEDICADO — SB_CALENDAR_ID', () => {
+  const DED = 'citas-proyecto@group.calendar.google.com'
+  const EVT = {
+    date: '2099-06-20', time: '10:00', duration: 30,
+    clientName: 'Ana', clientPhone: '300111222', serviceNames: 'Diseño de cejas',
+    totalPrice: '50000', domicilio: 'false', domicilioPrice: '0', address: '',
+  }
+
+  const env = () => runCodeGs(makeSpreadsheet({ services: [toRow('services', S1)] }))
+
+  it('sin SB_CALENDAR_ID los eventos van al calendario por defecto (sin avisos)', () => {
+    const g = env()
+    const r = g.call('createCalEvent', EVT)
+
+    expect(r.ok).toBe(true)
+    expect(g.store.calCreatedFrom).toEqual(['default'])
+    expect(JSON.stringify(g.store.logs)).not.toContain('SB_CALENDAR_ID')
+  })
+
+  it('con SB_CALENDAR_ID el evento se crea en el calendario secundario', () => {
+    const g = env()
+    g.store.props.set('SB_CALENDAR_ID', DED)
+    g.store.calIds.add(DED)
+
+    const r = g.call('createCalEvent', EVT)
+
+    expect(r.ok).toBe(true)
+    expect(r.eventId).toBeTruthy()
+    expect(g.store.calCreatedFrom).toEqual([DED])   // salió del dedicado
+    expect(g.store.cal._events.get(r.eventId).title).toBe('✨ Diseño de cejas — Ana')
+  })
+
+  it('si el id no es un calendario accesible se cae al por defecto y se avisa', () => {
+    const g = env()
+    g.store.props.set('SB_CALENDAR_ID', 'calendario-borrado@group.calendar.google.com')
+
+    const r = g.call('createCalEvent', EVT)
+
+    expect(r.ok).toBe(true)                          // la cita NUNCA se pierde
+    expect(g.store.calCreatedFrom).toEqual(['default'])
+    expect(JSON.stringify(g.store.logs)).toContain('SB_CALENDAR_ID')
+  })
+
+  it('actualizar y borrar buscan primero en el calendario dedicado', () => {
+    const g = env()
+    g.store.props.set('SB_CALENDAR_ID', DED)
+    g.store.calIds.add(DED)
+    const creado = g.call('createCalEvent', EVT)
+
+    const upd = g.call('updateCalEvent', creado.eventId, { ...EVT, time: '11:00' })
+    expect(upd.ok).toBe(true)
+    expect(g.store.calDedLookups).toEqual([creado.eventId])
+    expect(g.store.calLookups).toEqual([])           // no hizo falta mirar el otro
+
+    const del = g.call('deleteCalEvent', creado.eventId)
+    expect(del.ok).toBe(true)
+    expect(g.store.calDeleted).toEqual([creado.eventId])
+    expect(g.store.calDedLookups).toEqual([creado.eventId, creado.eventId])
+  })
+
+  it('un evento creado ANTES de configurar el dedicado sigue localizable', () => {
+    const g = env()
+    const viejo = g.call('createCalEvent', EVT)      // en el calendario por defecto
+
+    g.store.props.set('SB_CALENDAR_ID', DED)
+    g.store.calIds.add(DED)
+
+    const del = g.call('deleteCalEvent', viejo.eventId)
+    expect(del.ok).toBe(true)
+    expect(g.store.calDedLookups).toEqual([viejo.eventId])  // miró primero ahí…
+    expect(g.store.calLookups).toEqual([viejo.eventId])     // …y lo encontró igual
+    expect(g.store.calDeleted).toEqual([viejo.eventId])
+  })
+
+  it('pruebaCalendario() diagnostica id, acceso y PERMISO DE ESCRITURA', () => {
+    // (a) id válido con escritura → «OK → <nombre>» + «escr = OK»:
+    //     crea un evento de prueba y lo borra en el mismo segundo.
+    const ok3 = env()
+    ok3.store.props.set('SB_CALENDAR_ID', DED)
+    ok3.store.calIds.add(DED)
+    ok3.call('pruebaCalendario')
+    expect(JSON.stringify(ok3.store.logs)).toContain('id   = ' + DED)
+    expect(JSON.stringify(ok3.store.logs)).toContain('OK → Citas ' + DED)
+    expect(JSON.stringify(ok3.store.logs)).toContain('escr = OK')
+    expect(ok3.store.cal._events.size).toBe(0)               // el evento de prueba se borró
+    expect(ok3.store.calCreated.length).toBe(1)               // …pero sí se llegó a crear
+    expect(ok3.store.calDeleted.length).toBe(1)
+
+    // (b) calendario compartido en «Ver los detalles» (solo lectura):
+    //     se ve, se abre… pero NO se puede escribir → «escr = ERROR»
+    //     con la corrección concreta del permiso.
+    const ro = env()
+    ro.store.props.set('SB_CALENDAR_ID', DED)
+    ro.store.calIds.add(DED)
+    ro.store.cal.failCreate = true
+    ro.call('pruebaCalendario')
+    expect(JSON.stringify(ro.store.logs)).toContain('OK → Citas ' + DED)
+    expect(JSON.stringify(ro.store.logs)).toContain('escr = ERROR')
+    expect(JSON.stringify(ro.store.logs)).toContain('Realizar cambios y ver los detalles')
+
+    // (c) id inaccesible (otra cuenta / mal copiado) → «NULL».
+    const nulo = env()
+    nulo.store.props.set('SB_CALENDAR_ID', '8ef30853@group.calendar.google.com')
+    nulo.call('pruebaCalendario')
+    expect(JSON.stringify(nulo.store.logs)).toContain('NULL (no accesible → se usará el por defecto)')
+
+    // (d) sin la propiedad → lo dice sin reventar.
+    const sin = env()
+    sin.call('pruebaCalendario')
+    expect(JSON.stringify(sin.store.logs)).toContain('(sin SB_CALENDAR_ID)')
   })
 })
 
@@ -3282,5 +3654,174 @@ describe('Etiqueta del reporte en español (_fmtDayLabel)', () => {
     const m = lastMail(env.store)
     expect(m.subject).toContain('[REPORTE DIARIO] Actividad - lun, 5 de ene 2026')
     expect(m.subject).not.toMatch(/Mon|Jan/)
+  })
+})
+
+/* ══════════════════════════════════════════════════════════════
+   ENVIAR POR CORREO — botón «📧 Enviar por correo» de Reportes
+   ────────────────────────────────────────────────────────────
+   sendReportEmailNow(to, {period}): la app solo envía el PERÍODO
+   (día, mes, año o rango); el backend construye el correo con la
+   MISMA maquinaria de los triggers (_sendReportTo: emojis via
+   String.fromCharCode + entidades hex — nunca cruzan la red, que es
+   por lo que los automáticos siempre funcionaron y el botón falló)
+   y arma el Excel adjunto desde la hoja. Copia SIEMPRE a
+   SB_REPORT_EMAIL vía cc. Rieles: un solo destinatario validado,
+   dominio con punto, período estricto.
+   ══════════════════════════════════════════════════════════════ */
+describe('ENVIAR POR CORREO — sendReportEmailNow (botón de reportes)', () => {
+  const D = '2026-08-04'   // martes
+  const appt = (id, over = {}) => toRow('appointments', {
+    id, clientId: 'c1', clientName: 'Ana', clientPhone: '300111222',
+    serviceIds: 's1', serviceNames: 'Diseño de cejas', servicePrice: '35000',
+    servicePrices: '{}', domicilio: 'false', domicilioPrice: '0',
+    totalPrice: '35000', date: D, time: '09:00', createdAt: '2026-08-01T09:00:00',
+    calendarCreated: 'false', calendarEventId: '', completed: 'true',
+    duration: '30', paymentMethod: 'Efectivo', ...over,
+  })
+  const gasto = (id, over = {}) => toRow('expenses', {
+    id, description: 'Cera', amount: '10000', category: 'Insumos', date: D, ...over,
+  })
+  const env = () => {
+    const g = runCodeGs(makeSpreadsheet({
+      services: [toRow('services', S1)],
+      appointments: [appt('a1'), appt('a2', { completed: 'false', paymentMethod: '', time: '11:00' })],
+      expenses: [gasto('e1'), gasto('e2', { date: '2026-08-20' })],   // uno fuera del día
+    }))
+    return g
+  }
+
+  it('construye el correo con la MISMA maquinaria del trigger: emojis, asunto, copia y Excel', () => {
+    const g = env()
+    g.store.props.set('SB_REPORT_EMAIL', 'reportes@duena.test')
+
+    const r = post(g, {
+      action: 'sendReportEmailNow', to: 'clienta@correo.com',
+      period: { type: 'day', day: D },
+    })
+
+    expect(r.ok).toBe(true)
+    expect(r.data.ok).toBe(true)
+    expect(r.data.sentTo).toBe('clienta@correo.com')
+    expect(r.data.cc).toBe('reportes@duena.test')
+    expect(r.data.attached).toBe(true)
+
+    const m = g.store.mail[0]
+    // Mismo formato de asunto que los triggers, con kind MANUAL.
+    expect(m.subject).toMatch(/^\[REPORTE MANUAL\] Actividad - mar, 4 de ago 2026 \(\d{4}-\d{2}-\d{2} \d{2}:\d{2}\)$/)
+    // Los emojis del texto plano se construyen con fromCharCode: el
+    // correo lleva 📅 📊 💰 EXACTOS, no «símbolos raros».
+    expect(m.body).toContain('📅 ' + 'mar, 4 de ago 2026')
+    expect(m.body).toContain('📊 *Citas*')
+    expect(m.body).toContain('💰 *Ingresos*')
+    expect(m.body).toContain('• Creadas (registradas): *0*')   // creadas cuenta por createdAt (08-01)
+    expect(m.body).toContain('• Agendadas para el per\u00edodo: *2*')
+    // Copia al correo de reportes y Excel adjunto (construido aquí,
+    // como el del trigger).
+    expect(m.cc).toBe('reportes@duena.test')
+    expect(m.attachments.length).toBe(1)
+    // El HTML usa entidades hex (inmunes a charset), como el trigger.
+    expect(m.htmlBody).toContain('&#x1F4C5;')
+    expect(m.htmlBody).toContain('<b>Citas</b>')
+    // Pie del reporte manual.
+    expect(m.htmlBody).toContain('Reporte manual de la app de')
+  })
+
+  it('los cuatro períodos de la app funcionan: día, mes, año y RANGO', () => {
+    const g = env()
+
+    // Rango arbitrario: 2 completadas dentro (una el 4, otra el 20).
+    const rr = post(g, {
+      action: 'sendReportEmailNow', to: 'x@y.com',
+      period: { type: 'range', from: '2026-08-01', to: '2026-08-31' },
+    })
+    expect(rr.data.ok).toBe(true)
+    const mr = g.store.mail[0]
+    expect(mr.body).toContain('• Creadas (registradas): *2*')
+    // El gasto del 20 ENTRA en el rango del mes (salía del día solo).
+    expect(mr.body).toContain('*Gastos*')
+
+    const rm = post(g, {
+      action: 'sendReportEmailNow', to: 'x@y.com',
+      period: { type: 'month', ym: '2026-08' },
+    })
+    expect(rm.data.ok).toBe(true)
+    expect(g.store.mail[1].body).toContain('Agosto 2026')
+
+    const ry = post(g, {
+      action: 'sendReportEmailNow', to: 'x@y.com',
+      period: { type: 'year', y: '2026' },
+    })
+    expect(ry.data.ok).toBe(true)
+    expect(g.store.mail[2].body).toContain('Año 2026')
+
+    // El día solo trae lo del 4 de agosto.
+    const rd = post(g, {
+      action: 'sendReportEmailNow', to: 'x@y.com',
+      period: { type: 'day', day: D },
+    })
+    expect(rd.data.ok).toBe(true)
+    expect(g.store.mail[3].body).toContain('mar, 4 de ago 2026')
+  })
+
+  it('sin período (app desactualizada) → error claro, NADA enviado', () => {
+    const g = env()
+    const r = post(g, { action: 'sendReportEmailNow', to: 'x@y.com' })
+    expect(r.data.ok).toBe(false)
+    expect(r.data.code).toBe('bad_period')
+    expect(r.data.error).toMatch(/Actualiza la app/)
+    expect(g.store.mail.length).toBe(0)
+  })
+
+  it('período basura → igual de rechazado (no se confía en el POST)', () => {
+    const g = env()
+    const malos = [
+      { type: 'day', day: 'perico' },
+      { type: 'month', ym: '2026-8' },
+      { type: 'year', y: '26' },
+      { type: 'range', from: '2026-08-10', to: '2026-08-01' },  // invertido
+      { type: 'semana' },
+      { type: 'day', day: "'; DROP TABLE" },
+    ]
+    for (const p of malos) {
+      const r = post(g, { action: 'sendReportEmailNow', to: 'x@y.com', period: p })
+      expect(r.data.code).toBe('bad_period')
+    }
+    expect(g.store.mail.length).toBe(0)
+  })
+
+  it('«a@b» (sin punto en el dominio) se rechaza ANTES de Gmail — nunca «Invalid To header»', () => {
+    const g = env()
+    const r = post(g, {
+      action: 'sendReportEmailNow', to: 'dueña@gnail', period: { type: 'day', day: D },
+    })
+    expect(r.data.ok).toBe(false)
+    expect(r.data.code).toBe('bad_email')
+    expect(r.data.error).toMatch(/falta el punto del dominio/)
+    expect(g.store.mail.length).toBe(0)
+  })
+
+  it('si GMAIL rechaza con «Invalid To header», el mensaje que ve la clienta es simple', () => {
+    const g = env()
+    g.store.failSend = 'Argumento no válido:: Invalid To header'
+    const r = post(g, {
+      action: 'sendReportEmailNow', to: 'caso-raro@correo.com', period: { type: 'day', day: D },
+    })
+    expect(r.data.ok).toBe(false)
+    expect(r.data.code).toBe('bad_email')
+    expect(r.data.error).toMatch(/no es válido para Gmail/)
+    expect(r.data.error).not.toMatch(/Invalid To header|Argumento no válido/)
+  })
+
+  it('sin NINGÚN correo configurado el envío sale igual (sin copia) y avisa en el log', () => {
+    const g = env()
+    g.store.props.delete('SB_AUTHORIZED_EMAIL')
+    const r = post(g, {
+      action: 'sendReportEmailNow', to: 'x@y.com', period: { type: 'day', day: D },
+    })
+    expect(r.data.ok).toBe(true)
+    expect(r.data.cc).toBe('')
+    expect(g.store.mail[0].cc).toBe('')
+    expect(JSON.stringify(g.store.logs)).toContain('SIN copia')
   })
 })

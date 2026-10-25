@@ -28,7 +28,7 @@ Guía para **probar, diagnosticar, respaldar, restaurar y desplegar** WXYZ.
 Todos los comandos están tomados de `package.json` (`scripts`).
 
 ```bash
-npm run test          # una ejecución de las 339 pruebas
+npm run test          # una ejecución de las 354 pruebas
 npm run test:watch    # modo observador (re-ejecuta al guardar)
 npm run lint          # ESLint sobre src/ (*.js y *.jsx)
 npm run build         # build de producción en dist/
@@ -50,7 +50,7 @@ npm run format        # Prettier — formatea src/**
 
 | Comando | Resultado |
 |---|---|
-| `npm test` | ✅ **339/339 pruebas pasando** — 5 suites (≈3 s) |
+| `npm test` | ✅ **354/354 pruebas pasando** — 5 suites (≈3 s) |
 | `npm run lint` | ✅ **0 errores**, 11 *warnings* |
 | `npm run build` | ✅ OK (≈6 s) |
 
@@ -67,10 +67,26 @@ npm run format        # Prettier — formatea src/**
 | Suite | Pruebas | Qué cubre |
 |---|---:|---|
 | `src/helpers.test.js` | **171** | Toda la lógica pura de `helpers.js` |
-| `src/backend.test.js` | **144** | Ejecuta el `Code.gs` **real** en un sandbox |
-| `src/api.test.js` | **7** | Transporte HTTP y mensajes de error |
+| `src/backend.test.js` | **166** | Ejecuta el `Code.gs` **real** en un sandbox (API, Calendar con clasificación del borrado y prueba de escritura, el botón de correo con los 4 períodos y sus rieles, reportes, Excel, reset) |
+| `src/api.test.js` | **12** | Transporte HTTP, mensajes de error **sin jerga** (el detalle técnico va a consola), tope de espera de 25 s y **reintento automático de cargas** (transitorio sí, error del servidor no) |
 | `src/catalogs.test.js` | **14** | Catálogo inicial por tipo de negocio (`VITE_CATALOG` / `VITE_DEFAULT_SERVICES`) |
-| `src/excel.test.js` | **3** | Libro Excel (`buildReportWorkbook`): Resumen/Movimientos/Citas, hoja Clientes y las 9 paletas |
+| `src/excel.test.js` | **14** | Libro Excel (`buildReportWorkbook`), las **12 paletas completas** y el **contraste AA por paleta** (regresión de la auditoría UX/UI) |
+
+> **Total: 377 pruebas.** Las suites nuevas de octubre cubren: el botón
+> «📧 Enviar por correo» (períodos día/mes/año/rango, períodos basura
+> rechazados, `a@b` antes de Gmail, traducción del rechazo de Gmail, copia
+> automática, adjunto), la clasificación del borrado de eventos
+> (`still_exists` + excepción tardía), la prueba de escritura de
+> `pruebaCalendario` y el reintento automático de guardados.
+
+> La suite de contraste (5 pruebas dentro de `excel.test.js`) es una
+> **regresión de la auditoría UX/UI de octubre de 2026**: exige a cada
+> paleta primario/t/t2 ≥4.5:1 sobre sus fondos, el texto del botón ≥4.5:1
+> sobre las paradas del gradiente donde vive el texto (punta decorativa
+> ≥3.0, WCAG 1.4.11), el balance legible y los semánticos legibles.
+> **Si agregas o retocas una paleta, esta suite te dice si rompiste la
+> accesibilidad** — ver
+> [`ARQUITECTURA_Y_FUNCIONALIDADES.md` §18](ARQUITECTURA_Y_FUNCIONALIDADES.md).
 
 ### 2.2 `src/helpers.test.js` — lógica pura
 
@@ -114,7 +130,9 @@ Cubre:
   dispositivos, edición manual de la celda, saneado y **borrado** por
   `resetData`).
 - **Calendar**: `createCalEvent`, `updateCalEvent`, `deleteCalEvent`,
-  verificación post-escritura, idempotencia.
+  verificación post-escritura, idempotencia, y `pruebaCalendario`
+  (diagnóstico manual de `SB_CALENDAR_ID`: los tres casos — id válido,
+  id inaccesible y propiedad ausente).
 - **Reportes**: `_buildReport`, `_groupExpenses`, `_xlsxName`, períodos.
 - **Respaldos**: `createDailyBackup`, retención de 30 días.
 - **Triggers**: `setupAllReportTriggers` (4 disparadores, idempotente).
@@ -136,6 +154,17 @@ Cubre:
 
 - Mensajes de error por código HTTP (`httpError`).
 - `loadData` / `saveData` con `fetch` simulado.
+- **Tope de espera de 25 s** (`AbortController`): si Apps Script no
+  responde, la petición se cancela con un mensaje accionable y el
+  llamador activa «Reintentar guardar»; y una respuesta normal
+  **limpia** el temporizador (no queda ningún aborto pendiente).
+- **Reintento automático de cargas** (`callWithRetry`): un fallo
+  transitorio (tope de 25 s o HTTP 4xx/5xx) en `loadData` se reintenta
+  una vez a los 4 s antes de declarar el error — el arranque en frío de
+  la mañana ya no muestra «Modo sin conexión». Los errores del
+  **servidor** (JSON con `ok:false`, p. ej. token malo) **no** se
+  reintentan, y los **guardados** siguen siendo manuales con la franja
+  roja.
 - Flujo de restablecimiento.
 
 ### 2.5 `src/catalogs.test.js` — catálogo inicial
@@ -214,7 +243,7 @@ Aplica Prettier (`semi: false`, `singleQuote: true`, `printWidth: 120`).
 
 ## 4. Qué NO cubren las pruebas
 
-Esto es importante: **pasar las 339 pruebas no garantiza que producción
+Esto es importante: **pasar las 354 pruebas no garantiza que producción
 funcione.**
 
 | No se prueba | Por qué |
@@ -485,8 +514,9 @@ Editor → **Registros de ejecución** → busca `ERROR`, `❌`, `not_applied`.
 
 | Qué | Cómo | Frecuencia | Dónde |
 |---|---|---|---|
-| Hoja completa | `createDailyBackup` (`Code.gs` 884) | Diaria, 23:00 | Drive: `BACKUP-PROYECTO/Backups/<hoja>/` |
-| Último respaldo | `sendWeeklyBackupEmail` (`Code.gs` 986) | Sábados, 9:00 | Correo (destinatario desde `SB_BACKUP_EMAIL`, o `SB_AUTHORIZED_EMAIL` si no existe) |
+| Hoja completa | `createDailyBackup` (`Code.gs` 1067) | Diaria, 23:00 | Drive: `BACKUP-PROYECTO/Backups/<hoja>/` |
+| Último respaldo | `sendWeeklyBackupEmail` | Sábados, 9:00 | Correo (destinatario desde `SB_BACKUP_EMAIL`, o `SB_AUTHORIZED_EMAIL` si no existe) |
+| Reportes automáticos | `_sendReportEmail` (4 triggers a las 12:00) | Diario / semanal / mensual / anual | Correo (desde `SB_REPORT_EMAIL` si existe, si no desde `SB_AUTHORIZED_EMAIL`) |
 
 - **Retención:** 30 días (se eliminan los mayores).
 - **No duplica** si ya existe un respaldo de hoy.
@@ -500,7 +530,7 @@ Editor → **Registros de ejecución** → busca `ERROR`, `❌`, `not_applied`.
 
 | No se respalda | Cómo mitigarlo |
 |---|---|
-| **Propiedades del script** (`SB_SYNC_TOKEN`, `SB_AUTHORIZED_EMAIL`) | Anótalas en un **gestor de contraseñas** |
+| **Propiedades del script** (`SB_SYNC_TOKEN`, `SB_AUTHORIZED_EMAIL`, `SB_REPORT_EMAIL`, `SB_BACKUP_EMAIL`, `SB_CALENDAR_ID`, `SB_BIZ_NAME`) | Anótalas en un **gestor de contraseñas** |
 | **Variables de Vercel** | Anótalas; se re-entran en la consola |
 | **Eventos de Google Calendar** | No hay respaldo: si se borran, hay que **recrear las citas** |
 | **El código** | ✅ Sí está respaldado: es el repositorio de GitHub |

@@ -8,7 +8,7 @@ aplica.
 >
 > - ✅ **Verificado en código** — se leyó la implementación en este repositorio.
 > - 🧪 **Verificado en pruebas automatizadas** — existe un test que lo cubre
->   (339 pruebas, ejecutadas y en verde en esta ronda de documentación).
+>   (354 pruebas, ejecutadas y en verde en esta ronda de documentación).
 > - 🔎 **No verificado en producción** — la regla existe en el código pero no
 >   se probó en el entorno real de Google/Vercel.
 
@@ -33,6 +33,7 @@ aplica.
 15. [Manejo de errores y recuperación](#15-manejo-de-errores-y-recuperación)
 16. [Limitaciones conocidas](#16-limitaciones-conocidas)
 17. [Matriz de funcionalidades](#17-matriz-de-funcionalidades)
+18. [Sistema de paletas y accesibilidad (AA)](#18-sistema-de-paletas-y-accesibilidad-aa)
 
 ---
 
@@ -177,14 +178,14 @@ App → saveData(payload) → call(URL, {method:'POST', body:{token, ...payload}
 | Archivo | Líneas | Responsabilidad | ¿Testeado? |
 |---|---:|---|:---:|
 | `src/main.jsx` | 10 | Punto de entrada de React (`StrictMode`) | — |
-| `src/App.jsx` | 5.570 | **Toda la UI** + estado global + orquestación de guardado | — (componentes no unit-testeados) |
+| `src/App.jsx` | 5.826 | **Toda la UI** + estado global + orquestación de guardado + sistema de 12 paletas | — (componentes no unit-testeados) |
 | `src/helpers.js` | 909 | **Lógica pura**: fechas, slots, duraciones, estados, finanzas, reportes, servicio a domicilio, clasificación de citas | ✅ 171 tests |
-| `src/api.js` | 83 | Transporte HTTP y mensajes de error | ✅ 7 tests |
-| `apps-script/Code.gs` | 2.249 | Backend completo: API, seguridad, Sheets, Calendar, reportes, respaldos | ✅ 144 tests (en sandbox `node:vm`) |
-| `src/backend.test.js` | 3.286 | Ejecuta `Code.gs` **real** con mocks de Apps Script | — |
+| `src/api.js` | 141 | Transporte HTTP, mensajes de error **sin jerga** (detalle técnico a consola), **tope de espera de 25 s** (`AbortController`) y **reintento automático de cargas** (1 reintento a los 4 s para fallos transitorios) | ✅ 12 tests |
+| `apps-script/Code.gs` | 2.525 | Backend completo: API, seguridad, Sheets, Calendar (con `SB_CALENDAR_ID`, diagnóstico `pruebaCalendario` con prueba de escritura y borrado clasificado), reportes (triggers **y botón «📧 Enviar por correo»** con el núcleo compartido `_sendReportTo`), respaldos | ✅ 166 tests (en sandbox `node:vm`) |
+| `src/backend.test.js` | 3.827 | Ejecuta `Code.gs` **real** con mocks de Apps Script | — |
 | `src/helpers.test.js` | 1.767 | Pruebas unitarias de `helpers.js` | — |
-| `src/api.test.js` | 108 | Pruebas del transporte | — |
-| `src/excel.test.js` | 88 | Pruebas del libro Excel de reportes y respaldos (`buildReportWorkbook`) | — |
+| `src/api.test.js` | 213 | Pruebas del transporte (incluidos el tope de espera y el reintento automático) | — |
+| `src/excel.test.js` | 218 | Pruebas del libro Excel (`buildReportWorkbook`), de las 12 paletas y del contraste AA | — |
 
 ### 3.1 Componentes de `src/App.jsx`
 
@@ -198,7 +199,7 @@ App → saveData(payload) → call(URL, {method:'POST', body:{token, ...payload}
 | `Pager` | 930 | Paginación plana **‹ Ant. / Sig. ›** |
 | `CirclePager` | 967 | Paginación anidada con el **número en un círculo** |
 | `GS` | 1006 | **Bloque `<style>` global** (tema, modo oscuro, responsive) |
-| `Dashboard` | 1623 | Panel principal; «Citas de Hoy» muestra ✓ (completada) o píldora «✗ No asistió» (`apptStatus`) |
+| `Dashboard` | 1623 | Panel principal; «Citas de Hoy» (título con el emoji del negocio, `BIZ_EMOJI`) muestra ✓ (completada) o píldora «✗ No asistió» (`apptStatus`) |
 | `MonthlyIncomeState` | 1862 | Estado de ingresos por mes |
 | `MonthlyBalance` | 1920 | Balance mensual |
 | `ApptsTab` | 1996 | Lista de citas en acordeones |
@@ -311,7 +312,7 @@ La hoja **Config** (clave/valor) no está en `JS_KEYS`: la definen
 
 ## 5. Operaciones de lectura y escritura
 
-### 5.1 `readSheet(ss, key)` — `Code.gs` 1963
+### 5.1 `readSheet(ss, key)` — `Code.gs` 2258
 
 | Situación | Comportamiento |
 |---|---|
@@ -321,7 +322,7 @@ La hoja **Config** (clave/valor) no está en `JS_KEYS`: la definen
 | Filas **sin ID en la columna A** | Se descartan |
 | Celdas | Todas se leen como texto; `cellStr` (1993) normaliza fechas y horas |
 
-### 5.2 `writeSheet(ss, key, arr)` — `Code.gs` 1983
+### 5.2 `writeSheet(ss, key, arr)` — `Code.gs` 2278
 
 ```
 sh.clearContents()  →  setNumberFormat('@')  →  setValues([[HEADERS_ES[key]], …filas])
@@ -334,7 +335,7 @@ sh.clearContents()  →  setNumberFormat('@')  →  setValues([[HEADERS_ES[key]]
 - **No** hay `autoResizeColumn` aquí (el ancho de columnas solo se ajusta en
   el Excel que genera `_buildReportXlsx`).
 
-### 5.3 `sanitizePayload(b)` — `Code.gs` 2028
+### 5.3 `sanitizePayload(b)` — `Code.gs` 2323
 
 Aplica a cada campo numérico una **clausura de saneamiento**
 (`sanitizeNumberField` / `sanitizeDurationField`, líneas 2018–2026):
@@ -360,7 +361,7 @@ por la UI no se marca como rechazado. ✅
 > este punto. *Antes se documentaba aquí un filtrado de `__proto__` /
 > `constructor` / `prototype` que **no existe en el código**.*
 
-### 5.4 `trackPriceChanges(oldSvcs, newSvcs)` — `Code.gs` 1912
+### 5.4 `trackPriceChanges(oldSvcs, newSvcs)` — `Code.gs` 2138
 
 Antes de guardar servicios, compara precio viejo vs. nuevo y registra cada
 cambio en **HistorialPrecios** con `Utilities.formatDate(..., 'yyyy-MM-dd')`.
@@ -577,9 +578,14 @@ En los reportes, **«No asistió» aparece solo como número**, nunca como monto
 1. Guarda el `calendarEventId`.
 2. **Espera** la confirmación del servidor de que la cita se borró de la hoja.
 3. Borra **solo** el evento de **esa** cita con `calDelete(appt.calendarEventId)`
-   y comprueba `r.ok`.
+   y comprueba `r.ok`. Un fallo **transitorio** (tope de 25 s o HTTP 4xx/5xx)
+   se **reintenta automáticamente una vez a los 4 s** antes de molestar con
+   el modal — borrar un evento es idempotente, reintentarlo no duplica nada
+   (`isTransientError`, `src/api.js`; mismo criterio que `loadData`).
 4. Si falla → `confirm()` ofreciendo **reintento**; si el reintento también
-   falla → `infoModal()` con el **ID del evento** para borrarlo a mano.
+   falla → `infoModal()` con el **ID del evento** y el motivo **clasificado
+   por el backend** (`still_exists` explica el permiso de uso compartido;
+   ver §10.1) para borrarlo a mano.
 
 > 📌 **No se hace rollback.** Si el paso 3 falla, la cita **ya no está en
 > Sheets** y el evento queda huérfano: la app prefiere **informar y dar vía de
@@ -657,7 +663,7 @@ CSV **ambiguo**: un servicio puede llamarse
 >
 > Réplica obligatoria en **`Code.gs` → `_recoverSnapshotNames`** (ES5),
 > cubierta por el test de **paridad frontend↔backend**. Si se toca un lado
-> sin el otro, los 339 tests se caen.
+> sin el otro, los 354 tests se caen.
 
 ---
 
@@ -669,7 +675,7 @@ CSV **ambiguo**: un servicio puede llamarse
 |---|---|---:|---|
 | **Crear** | `createCalEvent` | 679 | Crea en el calendario **por defecto**, color `MAUVE`, sin invitaciones → `{ok, eventId}` |
 | **Actualizar** | `updateCalEvent` | 710 | Usa **solo** el id que trae la cita; **nunca crea**. Comprueba **después** de escribir que Calendar aplicó la hora (tolerancia 1 s); si no → `{ok:false, error:'not_applied'}` |
-| **Borrar** | `deleteCalEvent` | 764 | Usa solo el id. Si no existe → `{ok:true, alreadyGone:true}` (**idempotente**). **Nunca** barre el calendario |
+| **Borrar** | `deleteCalEvent` | 764 | Usa solo el id. Si no existe → `{ok:true, alreadyGone:true}` (**idempotente**). **Nunca** barre el calendario. Si `deleteEvent()` lanza, **verifica de verdad**: el evento sigue ahí → `{ok:false, code:'still_exists'}` con la causa real (casi siempre el **permiso de uso compartido**: Google disfraza ese fallo de «No existe o se eliminó el evento»); ya no está → `{ok:true, deleted:true}` (la excepción llegó tarde) |
 
 ### 10.2 Contenido del evento
 
@@ -733,7 +739,7 @@ explícitamente:
 | Editar | `ServicesTab` (3176): recalcula `price` con `Math.max(0, …)` |
 | Duración | Selector de 60 min por defecto; opciones 30/60/90/120/150/180 (`App.jsx` 301) |
 | Eliminar | `tryDelete` (3127) → `serviceDeletionCheck` → confirm → `SS(next)` |
-| Historial de precios | `trackPriceChanges` (`Code.gs` 1912) en el servidor |
+| Historial de precios | `trackPriceChanges` (`Code.gs` 2138) en el servidor |
 
 ### 11.3 Catálogo por defecto
 
@@ -791,7 +797,7 @@ datos, el catálogo real es el de Google Sheets. Detalle y paso a paso en
 > pero el de **Desde/Hasta** solo se limita entre sí (`max={to}` /
 > `min={from}`, 4045–4046): sirve para revisar citas ya agendadas con
 > antelación. Ningún predicado compara contra hoy — ni `inPeriod`
-> (`App.jsx` 3870–3877) ni `_inPeriod` (`Code.gs` 1135): solo hacen
+> (`App.jsx` 3870–3877) ni `_inPeriod` (`Code.gs` 1319): solo hacen
 > `desde ≤ fecha ≤ hasta`. 🧪
 
 ### 12.3 Detalle de gastos en el **texto del reporte** — regla de 8
@@ -810,7 +816,7 @@ datos, el catálogo real es el de Google Sheets. Detalle y paso a paso en
 
 **Constantes:** `REPORT_EXPENSE_DETAIL_MAX = 8` y
 `MAX_REPORT_EXPENSES = 20` (`helpers.js` 764 y 757); réplicas
-`DETALLE_MAX`/`MAX_EXP` en `Code.gs` 1639/1644. ✅ 🧪
+`DETALLE_MAX`/`MAX_EXP` en `Code.gs` 1665/1670. ✅ 🧪
 
 > ⚠️ **Regla invariante:** el **`• Total gastos`** siempre suma **todo** el
 > período **sin importar cuántas líneas se muestren**. Es una propiedad con
@@ -1043,24 +1049,34 @@ Se aplica **como segundo criterio de la fecha** en las tres listas de gastos:
 - Si no hay número configurado, **el botón sale deshabilitado** (`App.jsx`
   272, 4175–4190). ✅
 
-### 13.3 Reportes por correo (Apps Script)
+### 13.3 Reportes y respaldos automáticos (los 6 disparadores)
 
-| Función | Línea | Dispara | Período | Guard |
-|---|---:|---|---|---|
-| `sendDailyReportEmail` | 1801 | diario 12:00 | hoy | — |
-| `sendWeeklyReportEmail` | 1815 | domingo 12:00 | Lun–Dom | si hoy no es domingo → `SKIP` |
-| `sendMonthlyReportEmail` | 1836 | diario 12:00 | mes en curso | si no es el último día → `SKIP` |
-| `sendYearlyReportEmail` | 1861 | diario 12:00 | 1 ene – 31 dic | si hoy no es 31 dic → `SKIP` |
+La app instala **6 disparadores** («Activadores» en el editor de Apps
+Script), todos ejecutados **como la cuenta del proyecto** y con la zona
+horaria de `appsscript.json` (`America/Bogota`):
 
-**`setupAllReportTriggers()` (1882) instala 4 triggers** de forma idempotente. ✅
+| Disparador | Cuándo dispara | Qué hace | A quién llega | Variable que lo controla | Quién lo instala |
+|---|---|---|---|---|---|
+| `sendDailyReportEmail` (2027) | Todos los días, 12:00 | Reporte de **hoy** + `.xlsx` | **La usuaria** | `SB_REPORT_EMAIL` → si falta, `SB_AUTHORIZED_EMAIL` | `setupAllReportTriggers()` (2108) |
+| `sendWeeklyReportEmail` (2041) | Domingos, 12:00 | Lun–Dom de la semana en curso | **La usuaria** | igual | `setupAllReportTriggers()` |
+| `sendMonthlyReportEmail` (2062) | Dispara a diario 12:00; **envía solo el último día del mes** | Mes en curso | **La usuaria** | igual | `setupAllReportTriggers()` |
+| `sendYearlyReportEmail` (2087) | Dispara a diario 12:00; **envía solo el 31 de diciembre** | 1 ene – 31 dic | **La usuaria** | igual | `setupAllReportTriggers()` |
+| `createDailyBackup` (1067) | Todos los días, 23:00 | Copia la hoja a Drive (`BACKUP-PROYECTO/Backups/<hoja>/`), retención 30 días | **Nadie por correo**: la copia vive en Drive | — | `setupDailyBackupTrigger()` (1124) |
+| `sendWeeklyBackupEmail` (1169) | Sábados, 9:00 | Adjunta el respaldo **más reciente** en `.xlsx` | **El dueño del proyecto** | `SB_BACKUP_EMAIL` → si falta, `SB_AUTHORIZED_EMAIL` | `setupWeeklyEmailTrigger()` (1246) |
 
-> 📌 **Por qué se disparan a diario:** Apps Script **no tiene** trigger de
+Los 4 de reporte van a la usuaria; el respaldo semanal va al dueño. Los
+códigos de restablecimiento **no** usan triggers: se piden desde la app.
+
+> 📌 **Por qué dos disparan a diario:** Apps Script **no tiene** trigger de
 > «último día del mes/año». Por eso la función misma decide no enviar. Ver
 > `SKIP …` en los registros es **normal**.
 
+> 🔁 Cada `setup*` **borra antes los suyos** y vuelve a crearlos: ejecutarlos
+> repetido no duplica disparadores. En el panel debería haber **exactamente 6**.
+
 ### 13.4 El adjunto `.xlsx` generado por Apps Script
 
-`_buildReportXlsx` (`Code.gs` 1375) — **no usa SheetJS**:
+`_buildReportXlsx` (`Code.gs` 1576) — **no usa SheetJS**:
 
 ```
 SpreadsheetApp.create()  →  poblar con setValues  →  SpreadsheetApp.flush()
@@ -1105,6 +1121,43 @@ de formato **nunca** debe romper el envío. ✅
 > Las réplicas en `Code.gs` (`_groupExpenses`, `_topServicesByDemand`) están
 > comentadas como «MISMO orden y mismo criterio de desempate (por nombre, SIN
 > `localeCompare`, que puede variar entre entornos)».
+
+### 13.6 El botón «📧 Enviar por correo» (Reportes)
+
+> Fruto de **cinco rondas de producción** (24/10/2026). Lección aprendida y
+> regla de arquitectura: **el texto del reporte NUNCA cruza la red.**
+
+**Contrato:** la app solo envía `{action:'sendReportEmailNow', to, period}` —
+el **período** que se está viendo (`{type:'day'|'month'|'year'|'range', …}`,
+validado con formato estricto en `_sanitizeReportPeriod`). El backend
+construye el correo y el **Excel adjunto desde la hoja**, con la MISMA
+maquinaria de los triggers:
+
+> ⚠️ **Lección del rango (24/10):** un `const to` local en el handler del
+> frontend **ocultaba** el estado `to` (fecha «Hasta») del componente y el
+> modo rango mandaba *el correo como fecha final* — día/mes/año usaban
+> otros nombres y por eso solo el rango fallaba. La variable se llamó
+> `dest` y el E2E (`verify-email`) cubre los cuatro modos desde entonces.
+
+- `_sendReportEmail(period, kind)` se abrió en dos: el núcleo
+  **`_sendReportTo(r, period, kind, recipient, extra)`** (texto plano con
+  emojis via `String.fromCharCode` + HTML con **entidades hex**
+  `&#x1F4C5;` + adjunto `_buildReportXlsx`) queda **compartido** por los
+  4 disparadores y por el botón (`kind='MANUAL'`, asunto
+  `[REPORTE MANUAL] Actividad - <rótulo> (<fecha>)`).
+- **Copia SIEMPRE** a `_reportEmail()` vía `cc` (sin preguntar); si falta
+  la configuración, el envío sale igual con aviso en el log y `cc:''`.
+- **Rieles** (el correo es el único canal que sale a terceros): un solo
+  destinatario validado y con dominio con punto (el «a@b» que Gmail
+  rechaza con «Invalid To header» se detecta antes); períodos estrictos;
+  el rechazo crudo de Gmail se **traduce** a lenguaje simple.
+
+**Por qué los emojis casi nunca cruzaron bien:** Apps Script decodifica mal
+los caracteres de 4 bytes (📅 💰) que llegan en el cuerpo crudo del POST.
+Los automáticos siempre funcionaron porque construyen los suyos dentro del
+script; el manual los mandaba por la red. Las rondas intermedias (base64,
+tokens, reparación de mojibake) quedaron **retiradas**: el período es lo
+único que viaja y es ASCII.
 
 ---
 
@@ -1189,20 +1242,23 @@ respuesta se perdió**. En vez de asumir, **relee la hoja** y la compara
 
 ### 15.1 Mensajes de transporte (`src/api.js`)
 
-Textos **literales** de `httpError()` (15–25) y de `call()` (29–45) — son los
+Textos **literales** de `httpError()` (15–25) y de `call()` (44–69) — son los
 que ve la operadora:
 
 | Caso | Línea | Mensaje exacto |
 |---|---:|---|
 | 404 con `/macros/u/\d+/` | 17–18 | `HTTP 404: Google reescribió la dirección con /u/N/. ` + `MULTI_ACCOUNT_HINT` |
-| 404 normal | 19 | `HTTP 404: Apps Script no encontró el Web App. Comprueba la URL y la versión publicada en Apps Script.` |
+| 404 normal | 19 | `HTTP 404: Apps Script no encontró el Web App. Comprueba que la URL termine en /exec y publica de nuevo la última versión (Implementar → Administrar implementaciones).` |
 | 401 / 403 | 21 | `HTTP 403: Google no autorizó la conexión. ` + `MULTI_ACCOUNT_HINT` |
 | 429 | 22 | `HTTP 429: Google está limitando las peticiones. Espera unos minutos y vuelve a intentarlo.` |
 | 5xx | 23 | `HTTP 500: Apps Script falló del lado de Google. Reintenta en unos minutos.` |
-| Red / `fetch` rechazado | 34–37 | `Sin respuesta de Apps Script (<motivo>). Revisa tu conexión a internet. ` + `MULTI_ACCOUNT_HINT` |
-| Respuesta no-JSON | 42 | `Apps Script devolvió algo que no es JSON: publica de nuevo la última versión del Web App.` |
-| **HTTP 200 con `{ok:false}`** | 43 | El **`json.error` del servidor**; si no lo hay, el `fallback` del llamador (`'Error guardando'`, `'Error cargando datos'`, …) |
-| `VITE_SCRIPT_URL` sin definir | 48, 53 | `VITE_SCRIPT_URL no configurado` |
+| Red / `fetch` rechazado | 56–59 | `Sin respuesta de Apps Script (<motivo>). Revisa tu conexión a internet. ` + `MULTI_ACCOUNT_HINT` |
+| **Tope de 25 s (`AbortError`)** | 38–42, 55 | `Google no respondió a tiempo. La app reintentó sola y no logró conectar: revisa el internet, espera unos segundos y vuelve a intentar. Mientras tanto, todo queda guardado en este dispositivo.` — lenguaje simple para la operadora; el detalle técnico (tope, arranque en frío) va a `console.warn` |
+| **Reintento automático de cargas** (`callWithRetry`, solo `loadData`) | 76–91 | Un fallo **transitorio** (tope de 25 s o cualquier HTTP 4xx/5xx) se reintenta **una vez** a los 4 s antes de declarar el error: el arranque en frío de la mañana o un 404 puntual al actualizarse el despliegue ya no muestran el banner. Los errores del **servidor** (JSON `ok:false`) no se reintentan, y los **guardados** siguen siendo manuales con la franja roja «Reintentar guardar». |
+| **Reintento automático de guardados** (`sync`, `App.jsx`) | — | `sync` reenvía el payload a los **4 s y a los 12 s** si el fallo es transitorio (mismo `isTransientError`), antes de mostrar la franja roja. Es **seguro reenviar**: las hojas se reemplazan con el MISMO array (filas por id) y `createCalEvent` (`Code.gs`) crea con **protección anti-duplicados** — mismo título y hora de inicio (±1 min) en la ventana del día → devuelve el evento existente con `alreadyExisted` en vez de crear otro. |
+| Respuesta no-JSON | 66 | `Apps Script devolvió algo que no es JSON: publica de nuevo la última versión del Web App.` |
+| **HTTP 200 con `{ok:false}`** | 67 | El **`json.error` del servidor**; si no lo hay, el `fallback` del llamador (`'Error guardando'`, `'Error cargando datos'`, …) |
+| `VITE_SCRIPT_URL` sin definir | 72, 77 | `VITE_SCRIPT_URL no configurado` |
 
 > 📌 `MULTI_ACCOUNT_HINT` (11) se aparca en varios de ellos: es el aviso de
 > «Hay varias cuentas de Google abiertas en este navegador… entra en una
@@ -1216,11 +1272,15 @@ que ve la operadora:
 
 ### 15.2 Modo offline
 
-1. Si `loadData()` falla → `setSt('error')` (420) y se leen las cuatro
-   claves de `localStorage` (`App.jsx` 422–425): `sb_c`, `sb_s`, `sb_a`, `sb_e`.
-2. En la parte superior aparece **`⚠️ Modo sin conexión — <mensaje>`**
-   (`App.jsx` 721) y el `SyncBadge` (688) pasa a **`⚠️`**.
-3. **No hay cola automática de reintentos**, pero el fallo **sí tiene aviso y
+1. Si `loadData()` falla (tras su **reintento automático** de §15.1) →
+   `setSt('error')` (420) y se leen las cuatro claves de `localStorage`
+   (`App.jsx` 422–425): `sb_c`, `sb_s`, `sb_a`, `sb_e`.
+2. En la parte superior aparece **`⚠️ Modo sin conexión — <mensaje>`** con un
+   botón **✕ para cerrarlo** (`errHidden`, `App.jsx`). Cerrado, **no reaparece**
+   en los fallos siguientes del ciclo de 30 s (el `SyncBadge` del header sigue
+   informando en silencio) y **se rearma solo** cuando una carga vuelve a tener
+   éxito (`useEffect` que resetea `errHidden` al salir de `error`).
+3. **Los guardados no se reintentan solos**, pero el fallo **sí tiene aviso y
    reintento manual**: si `sync` falla, aparece la franja roja
    **«⚠️ No se pudo guardar»** con botón **«↻ Reintentar guardar»**
    (`saveFailed`/`failedSaveRef`, `App.jsx`), que reenvía `failedSaveRef.current`
@@ -1272,7 +1332,7 @@ servidor y permite reenviarlo a mano. 🧪
 |---|---|
 | Escrituras concurrentes | `LockService.getScriptLock()` + `waitLock(10000)` → `«Servidor ocupado, reintenta»` (`Code.gs` 59–60) |
 | Claves ajenas al esquema | **No hay filtrado**: nunca llegan a la hoja porque `writeSheet` solo escribe `HEADERS_ES` (ver §5.3) |
-| Montos negativos | Saneados a `0` en el servidor (`clip0`, `Code.gs` 2013) |
+| Montos negativos | Saneados a `0` en el servidor (`clip0`, `Code.gs` 2039) |
 | Duraciones absurdas | Recortadas a 15–480 (`safeDuration`) |
 | Filas sin ID | Descartadas al leer |
 | Hojas con columnas de más | Ignoradas con `console.warn` |
@@ -1290,8 +1350,8 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | 3 | **La validación de horarios es solo en el cliente**: doble reloj posible entre dos dispositivos | `checkSlot`, `helpers.js` 532 |
 | 4 | **No hay transaccionalidad Sheets ↔ Calendar**: posible evento huérfano | `deleteAppt`, `App.jsx` 625–657 |
 | 5 | **El reloj de la app** (agrupar por pasado/hoy, marcar horas vencidas) solo corre si el navegador está abierto | `apptGroup` / `apptLife`, `helpers.js` 231, 453 |
-| 6 | **`writeSheet` borra ediciones manuales** de la hoja | `Code.gs` 1983 |
-| 7 | ~~Destinatario de reportes hardcodeado~~ → **CORREGIDO**: los tres envíos leen `_authorizedEmail()` / `SB_AUTHORIZED_EMAIL` | `Code.gs` 185 |
+| 6 | **`writeSheet` borra ediciones manuales** de la hoja | `Code.gs` 2278 |
+| 7 | ~~Destinatario de reportes hardcodeado~~ → **CORREGIDO**: los tres envíos leen propiedades de script (`_authorizedEmail()` / `SB_AUTHORIZED_EMAIL` **lista**, `_reportEmail()` / `SB_REPORT_EMAIL`, `_backupEmail()` / `SB_BACKUP_EMAIL`) | `Code.gs`, sección «Configuración» |
 | 8 | **El guardado fallido no revierte la pantalla** de inmediato: espera al próximo polling (≤30 s). **Mitigado** con la franja roja + «↻ Reintentar guardar» y con `refresh()` protegido mientras el aviso esté activo | `sync`, `App.jsx` 517–520, 397–401 |
 | 9 | **Eventos de Calendar no se respaldan** | — |
 | 10 | **Dos clientas con el mismo celular no se fusionan** | — |
@@ -1365,12 +1425,12 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | 40 | Excel con 3 hojas (app) | `App.jsx` `exportExcel` (3967), SheetJS | ✅ | — |
 | 41 | Excel trae **todos** los gastos | `App.jsx` `exportExcel` | ✅ | 🧪 |
 | 41b | **Paginación en «Movimientos del período»** (>10) | `App.jsx` `Pager`, `ReportTab` | ✅ | — |
-| 41c | **Rango que llega al futuro** (revisar citas agendadas) | `App.jsx` `onFrom`/`onTo` (3854–3862) e `inPeriod` (3870–3877); backend `_inPeriod` (`Code.gs` 1135) | ✅ | 🧪 |
+| 41c | **Rango que llega al futuro** (revisar citas agendadas) | `App.jsx` `onFrom`/`onTo` (3854–3862) e `inPeriod` (3870–3877); backend `_inPeriod` (`Code.gs` 1319) | ✅ | 🧪 |
 | 42 | WhatsApp al admin | `App.jsx` `sendWA`, `wa.me` | ✅ | — |
 | 43 | Correo con adjunto `.xlsx` | `Code.gs` `_buildReportXlsx` (1375) | ✅ | 🧪 |
 | 44 | Fallback sin adjunto | `Code.gs` `_sendReportEmail` (1623) | ✅ | 🧪 |
 | 45 | Paridad WhatsApp ↔ correo | `backend.test.js` | ✅ | 🧪 |
-| 46 | Reportes automáticos (4) | `Code.gs` 1801–1861 | ✅ | 🧪 |
+| 46 | Reportes automáticos (4) y respaldos (2) | `Code.gs` 2027–2100 y 1067/1169 | ✅ | 🧪 |
 | 47 | Triggers idempotentes | `setupAllReportTriggers` (1882) | ✅ | 🧪 |
 | **SEGURIDAD** | | | | |
 | 48 | Token en Script Properties (fail closed) | `Code.gs` 15, 244 | ✅ | 🧪 |
@@ -1392,7 +1452,12 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | 63 | Escritura optimista (revisión en el próximo polling) | `App.jsx` 493–522 | ✅ | — |
 | 63b | **Franja roja de guardado fallido + «↻ Reintentar»** (`refresh()` protegido mientras `saveFailed`) | `App.jsx` `saveFailed`, `failedSaveRef`, `retrySave` | ✅ | — |
 | 63c | **Excel de respaldo antes del reset** = informe completo (Resumen / Movimientos / Citas, histórico entero) + hoja Clientes, `respaldo_YYYY-MM-DD.xlsx` | `App.jsx` `exportBackupXlsx` · `buildReportWorkbook` | ✅ | — |
-| 64 | Tema y paletas persistentes | `GS` (1006), `localStorage` | ✅ | — |
+| 64 | Tema y paletas persistentes (12 paletas AA, ver §18) | `PALETTES`/`applyTheme` (`App.jsx`), `localStorage` | ✅ | 🧪 |
+| 63d | **Reintento automático de guardados** (transitorio: 4 s y 12 s antes de la franja roja; seguro: filas por id + `createCalEvent` anti-duplicados) | `App.jsx` `sync` · `api.js` `isTransientError` · `Code.gs` | ✅ | 🧪 |
+| 67 | **Botón «📅 Ir a cita»** en el panel del día del Calendario (focusAppt: abre el grupo, resalta y hace scroll) | `App.jsx` `CalendarView` | ✅ | — |
+| 68 | **«📧 Enviar por correo»**: período → correo del trigger con copia automática y Excel adjunto (ver §13.6) | `Code.gs` `sendReportEmailNow`/`_sendReportTo` | ✅ | 🧪 |
+| 69 | **Diagnóstico de escritura del calendario** (`pruebaCalendario` línea `escr =`: crea y borra un evento de prueba) | `Code.gs` | ✅ | 🧪 |
+| 70 | **Borrado de eventos clasificado** (`still_exists` explica el permiso; excepción tardía reconocida; reintento automático del borrado) | `Code.gs` `deleteCalEvent` · `App.jsx` `calDelete` | ✅ | 🧪 |
 | 65 | Branding dinámico (`VITE_BIZ_*`) | `App.jsx` 259–262, 360–373 | ✅ | — |
 | 66 | Telemetría / análisis externo | **No existe** | ✅ | ✅ |
 
@@ -1407,10 +1472,80 @@ Confirmadas leyendo el código; **no son defectos ocultos**.
 | 🔎 | No verificado en producción (integraciones reales de Google y Vercel) |
 
 > ⚠️ **Ninguna funcionalidad fue probada manualmente en producción durante
-> esta ronda de documentación.** Las **327 pruebas** corren en un **sandbox con
-> mocks** de Apps Script (`node:vm`), no contra Google real. La integración
-> con Sheets, Calendar, Gmail, Drive y Vercel queda marcada como 🔎.
-> La suite hoy son **327 pruebas** en 4 archivos.
+> las rondas de documentación de agosto y octubre.** Las **377 pruebas**
+> corren en un **sandbox con mocks** de Apps Script (`node:vm`), no contra
+> Google real. La integración con Sheets, Calendar, Gmail, Drive y Vercel
+> queda marcada como 🔎.
+> La suite hoy son **377 pruebas** en 5 archivos.
+
+---
+
+## 18. Sistema de paletas y accesibilidad (AA)
+
+> Fruto de las **dos auditorías UX/UI de octubre de 2026** (medición en
+> navegador real: inspector de la skill `design-taste-frontend` + una matriz
+> de contraste WCAG por tema). Los **gradientes, emojis, glass y sombras se
+> conservaron** por decisión expresa del propietario; la accesibilidad se
+> resolvió **sin tocar la identidad**.
+
+### 18.1 Las 12 paletas
+
+`PALETTES` (`App.jsx` 26–275) es la fuente única del selector de Ajustes.
+Cada paleta define **18 campos obligatorios** (`id, name, emoji, primary, pd,
+pl, bg, border, t, t2, gradient, gradientSoft, glass, glassStrong, neoLight,
+neoDark, neoShadow, neoShadowDark`) y opcionales con defaults en `applyTheme`
+(`??`): `card, surface, inputBg, green, greenBg, gold, goldBg, red, redBg,
+warnBg, warnT, chromeBg, chromeBgr, chromeBrd, gradT, gradT2`.
+
+| Paleta | Personalidad |
+|---|---|
+| `rosa` **Palo de Rosa** 🌸 | Fusión de Rosa+Coral: dusty rose `#A84B60` sobre crema `#F9F1F3` (default) |
+| `morado` 💜 · `azul` 💙 · `verde` 💚 · `fucsia` 🌺 · `salvia` 🌿 | Clásicas con primarios ajustados a AA |
+| `dorado` ✨ | Oro profundo `#896514` sobre crema `#FCF8F3` |
+| `carbon` ⚫ · `marino` ⚓ | Sobrias |
+| `barberia` **Barbería** 💈 | Gradiente **negro→azul→rojo** (`#10192B→#1D4FD7→#C8102E`) sobre blanco |
+| `gala` **Gala** 🎩 | Crema champán `#F8F2E5` + oro antiguo `#846317` |
+| `burdeos` **Burdeos** 🍷 | Vino `#6B1E2E` sobre crema `#FAF3F0`, espresso `#2A1A12` de texto |
+
+Retiradas: `coral` y `crema` (fusionadas en Palo de Rosa). Un `id` guardado
+que ya no existe cae en `PALETTES[0]` (`applyTheme`), así que nadie se queda
+sin tema.
+
+### 18.2 Variables de texto sobre rellenos (`gradT` / `gradT2`)
+
+Todo texto que vive sobre una superficie saturada (gradiente del tema, chips
+de `--primary`, tarjetas de balance y las tarjetas verde/rojo del neto) usa
+**`--grad-t`** (texto principal) y **`--grad-t2`** (texto atenuado), con
+defaults blanco/blanco-75%. Una paleta de rellenos claros puede redefinirlos
+a oscuro. Regla de la casa: **la parada 0% del gradiente es donde vive el
+título del header y la 50% donde vive el texto del botón** — ambas deben
+pasar 4.5:1 con `gradT`.
+
+### 18.3 Lo que exige la suite de regresión (`excel.test.js`)
+
+Para **cada** paleta (una que no cumpla rompe el build):
+
+- `primary` ≥4.5:1 como texto sobre blanco, su `pl` y su `bg`.
+- `t` y `t2` ≥4.5:1 sobre el `bg`.
+- Texto del botón (`gradT`): ≥4.5:1 sobre **todas las paradas del gradiente
+  salvo la última**, y la última (punta decorativa, esquina sin texto)
+  ≥3.0:1 — criterio WCAG 1.4.11 de componentes.
+- Balance (`primary`→`pd`): legible con `gradT`.
+- Semánticos `gold`/`green`/`red`/`warnT` ≥4.5:1 sobre sus fondos
+  (defaults: gold `#8A6700`, greenBg `#F2FBF6`, red `#B03030`, warnT `#7A5000`).
+
+### 18.4 Reglas de la casa aprendidas de las auditorías
+
+- **Piso tipográfico 11px** en toda la UI; título `<h1>` por pantalla; cifras
+  con `font-variant-numeric: tabular-nums` (`index.css`).
+- **Objetivos táctiles ≥24×24** (WCAG 2.5.8); el botón «Hoy» del calendario
+  fue el último corregido.
+- Los rellenos con tinte verde/rojo usan `var(--green-bg)` / `var(--red-bg)`
+  — nunca hexes sueltos (5 hardcodeados fueron migrados en octubre).
+- Placeholders a `--t2` **sin opacidad** (a 60% eran 2.6:1).
+- En grillas de 2 columnas angostas, las etiquetas de los inputs deben ser
+  cortas y de una línea («Nombre», «Celular»): una etiqueta que envuelve
+  desalinea los inputs (bug reportado desde un celular real, corregido).
 
 ---
 

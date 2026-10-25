@@ -9,7 +9,7 @@ React 18 + Vite · Google Apps Script + Sheets + Calendar · Deploy en Vercel
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
-[![Tests](https://img.shields.io/badge/Tests-339_passing-brightgreen)](#-testing)
+[![Tests](https://img.shields.io/badge/Tests-354_passing-brightgreen)](#-testing)
 [![Deploy](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 [![Backend](https://img.shields.io/badge/Backend-Google_Apps_Script-34A853?logo=googleapps&logoColor=white)](https://script.google.com)
 
@@ -31,7 +31,8 @@ Los datos no viven en el navegador ni en un servidor propio: se guardan en una
 **base de datos gratis, en la nube y accesible desde cualquier dispositivo**.
 
 > ✨ Pensado para una operadora (no para un equipo de ingeniería): interfaz grande,
-> táctil, en español (Colombia), con paletas de colores y modo oscuro.
+> táctil, en español (Colombia), con 12 paletas de colores y accesibilidad
+> AA verificada.
 
 ---
 
@@ -74,7 +75,10 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 - Edición de cita preservando el **precio que tenía al momento de crearla**
   (historial de precios en la hoja `HistorialPrecios`).
 - **Integración con Google Calendar**: cada cita crea/actualiza/borra un evento
-  automático, con comprobación post-escritura.
+  automático, con comprobación post-escritura. Con la propiedad opcional
+  `SB_CALENDAR_ID` los eventos van a un **calendario secundario** de la
+  cuenta del proyecto (p. ej. «Citas <negocio>»), compartible con la usuaria
+  en **solo lectura**; sin ella, al calendario por defecto.
 
 ### 👥 Clientes
 - Base de clientes con **búsqueda por celular** (sufijo primero, luego subcadena).
@@ -117,16 +121,27 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 - Reporte por **día, mes, rango de fechas o año completo**.
 - **Exportación a Excel (`.xlsx`)** con tres hojas: Resumen, Citas y Gastos.
 - **Botón de WhatsApp al admin** con el resumen del período.
+- **Botón «📧 Enviar por correo»**: manda el MISMO correo de los
+  automáticos (asunto `[REPORTE MANUAL]`, emojis, Excel adjunto) al
+  correo que la clienta escriba, con **copia automática** al correo de
+  reportes. El backend lo construye con la maquinaria de los triggers;
+  la app solo envía el período.
 - **Reportes automáticos por correo** (Apps Script, con el Excel adjunto):
-  diario, semanal, mensual y anual.
+  diario, semanal, mensual y anual. Salen **desde la cuenta de Google del
+  proyecto** hacia `SB_REPORT_EMAIL` (o, si no existe, hacia
+  `SB_AUTHORIZED_EMAIL`): puedes mandarlos solo a la usuaria.
 
 ### 📅 Calendario (vista mensual)
-- Vista de mes completa con las citas pintadas por día.
-- Toca un día para ver/abrir sus citas.
+- Vista de mes completa con las citas pintadas por día (también por semana).
+- Toca un día para ver sus citas: cada tarjeta trae **«👁 Detalle»**,
+  **«📅 Ir a cita»** (salta a Citas sobre esa cita, la resalta y hace
+  scroll hasta ella), Editar, WhatsApp y Eliminar.
 
 ### ⚙️ Ajustes
-- **9 paletas de color** (Rosa · Morado · Azul · Verde · Dorado · Fucsia ·
-  Coral · Salvia · Carbón) + **modo claro/oscuro**, guardados en el navegador.
+- **12 paletas de color** con contraste AA verificado (Palo de Rosa 🌸 ·
+  Morado 💜 · Azul 💙 · Verde 💚 · Dorado ✨ · Fucsia 🌺 · Salvia 🌿 ·
+  Carbón ⚫ · Barbería 💈 · Gala 🎩 · Marino ⚓ · Burdeos 🍷), guardadas en
+  el navegador.
 - **Saldo inicial** del negocio: guardado en **Google Sheets** (hoja «Config»)
   y sincronizado entre navegador y celulares (también se puede editar la celda
   directo en la hoja). El Panel lo muestra **aparte, a la derecha** del Balance
@@ -144,9 +159,20 @@ La documentación completa vive en [`docs/`](docs/INDEX.md):
 - **Sincronización automática cada 30 s**, pausada cuando la pestaña no está
   visible.
 - **Modo sin conexión**: si falla la red, se sigue trabajando con respaldo en
-  `localStorage`. Si el fallo es al **guardar**, aparece una **franja roja con
-  botón «↻ Reintentar guardar»** que reenvía lo pendiente; el Panel no se
-  refresca por su cuenta mientras ese aviso esté visible.
+  `localStorage`. Las **cargas** se reintentan solas una vez a los 4 s y los
+  **guardados** dos veces (4 s y 12 s): los fallos transitorios — arranque en
+  frío o un 404 puntual de Google — casi nunca muestran aviso, y los mensajes
+  que sí salen van **sin jerga** (el detalle técnico queda en la consola). Si
+  el fallo es real al **guardar**, aparece una **franja roja con botón
+  «↻ Reintentar guardar»** que reenvía lo pendiente; el Panel no se refresca
+  por su cuenta mientras ese aviso esté visible. El aviso amarillo de «Modo
+  sin conexión» se puede **cerrar con ✕** y no reaparece en cada fallo del
+  ciclo de 30 s (se rearma solo tras reconectar).
+- **Borrado de citas + Google Calendar**: si el evento no se pudo borrar,
+  el backend **clasifica la causa** (casi siempre el permiso de uso
+  compartido del calendario — Google lo disfraza de «no existe») y el
+  mensaje dice la corrección concreta. `pruebaCalendario()` diagnostica
+  id, acceso y **permiso de escritura** desde el editor de Apps Script.
 - **Branding dinámico**: nombre, subtítulo, emoji y logo del negocio desde
   variables de entorno (título y favicon se actualizan en runtime).
 - **Respaldo automático** de la hoja en Google Drive (diario, 30 días de
@@ -238,7 +264,7 @@ WXYZ/
 │
 ├── src/
 │   ├── main.jsx               # Entry point de React
-│   ├── App.jsx                # 🟡 Toda la UI (~5.500 líneas): componentes y estado
+│   ├── App.jsx                # 🟡 Toda la UI (~5.570 líneas): componentes y estado
 │   ├── api.js                 # load/save contra el Web App de Apps Script
 │   ├── helpers.js             # Funciones puras (~900 líneas) — la fuente de las reglas
 │   ├── catalogs.js            # Catálogos por tipo de negocio (VITE_CATALOG)
@@ -250,7 +276,7 @@ WXYZ/
 │   └── backend.test.js        # Ejecuta el Code.gs REAL dentro de un sandbox
 │
 └── apps-script/               # 🟢 Backend (SOLO LOCAL, en .gitignore: NO va a GitHub)
-    ├── Code.gs                # Lógica completa (~2.250 líneas)
+    ├── Code.gs                # Lógica completa (~2.340 líneas)
     └── appsscript.json        # Manifiesto ACTIVO (scopes + zona horaria)
 ```
 
@@ -331,7 +357,7 @@ Copia `.env.example` a `.env` (local) o configúralas en
 | `VITE_TOKEN` | ✅ | ⚠️ **expuesta** | Debe coincidir exactamente con la propiedad de script `SB_SYNC_TOKEN` |
 | `VITE_BIZ_NAME` | — | pública | Nombre del negocio (header + `<title>`). Defecto: `SZ` (despliegue original) → **obligatoria en un cliente nuevo** |
 | `VITE_BIZ_SUBTITLE` | — | pública | Subtítulo corto: aparece bajo el nombre **y** en la pestaña (`NOMBRE · SUBTITULO`) |
-| `VITE_BIZ_EMOJI` | — | pública | Emoji del icono de la pestaña (favicon), del encabezado y del cierre del mensaje de WhatsApp. Defecto: `🌸` |
+| `VITE_BIZ_EMOJI` | — | pública | Emoji de marca en toda la app: favicon de la pestaña, pantalla de carga (splash), encabezado (si no hay logo), pie de página, título «Citas de Hoy» y estado vacío de Citas, y cierre del mensaje de WhatsApp. Defecto: `🌸` |
 | `VITE_BIZ_LOGO` | — | pública | URL absoluta del logo para `apple-touch-icon` |
 | `VITE_CATALOG` | — | pública | Catálogo inicial de servicios: `cejas` \| `unas` \| `peluqueria` \| `barberia` \| `depilacion` \| `masajes` \| `estetica` \| `maquillaje` (`src/catalogs.js`). Defecto: `cejas` |
 | `VITE_DEFAULT_SERVICES` | — | pública | Lista JSON con los servicios exactos del cliente. **Tiene prioridad** sobre `VITE_CATALOG` |
@@ -377,9 +403,13 @@ tiene el procedimiento completo; el resumen:
    - **Quién tiene acceso:** Cualquier usuario
    - Autoriza los permisos (Sheets, Calendar, Gmail, Drive).
 4. **Copia la URL**: `https://script.google.com/macros/s/«…»/exec`.
-5. **Instala los triggers automáticos** ejecutando una sola vez
-   `setupAllReportTriggers()`, y si quieres respaldos, `setupDailyBackupTrigger()`
-   y `setupWeeklyEmailTrigger()`.
+5. **Instala los triggers automáticos** ejecutando **una sola vez**
+   `setupAllReportTriggers()`, `setupDailyBackupTrigger()` y
+   `setupWeeklyEmailTrigger()`. En el panel **Activadores** deben quedar
+   **6 disparadores**: 4 reportes (diario/semanal/mensual/anual → llegan a
+   `SB_REPORT_EMAIL`, y si no existe a `SB_AUTHORIZED_EMAIL`), el backup
+   diario a Drive (23:00) y el respaldo por correo los sábados 9:00 (→
+   `SB_BACKUP_EMAIL`). Detalle en `docs/MANUAL_TECNICO.md` **E.9**.
 
 > 🔄 **OJO:** cada vez que edites `Code.gs`, vuelve a
 > *Implementar → Gestionar → Nueva versión*. **Nunca crees una implementación
@@ -413,16 +443,16 @@ Detalle completo en [`docs/MANUAL_TECNICO.md`](docs/MANUAL_TECNICO.md) sección 
 
 ## 🧪 Testing
 
-Hay **339 pruebas** en 5 suites, ejecutadas y verificadas en esta ronda de
+Hay **377 pruebas** en 5 suites, ejecutadas y verificadas en esta ronda de
 documentación:
 
 | Suite | Pruebas | Qué cubre |
 |---|---:|---|
 | `src/helpers.test.js` | 171 | Lógica pura: fechas, slots, teléfono, duraciones, estados, finanzas, reportes |
-| `src/backend.test.js` | 144 | **Ejecuta el `Code.gs` real** en un sandbox (`node:vm`): API, reset, Calendar, reportes, Excel, paridad correo/WhatsApp y marca de los correos (`SB_BIZ_NAME`) |
+| `src/backend.test.js` | 166 | **Ejecuta el `Code.gs` real** en un sandbox (`node:vm`): API, reset, Calendar (incluido `SB_CALENDAR_ID`, el diagnóstico `pruebaCalendario` con **prueba de escritura** y la clasificación `still_exists` del borrado), reportes (el botón «📧 Enviar por correo» con **la misma maquinaria de los triggers**), Excel, destinatarios (`SB_AUTHORIZED_EMAIL` lista / `SB_REPORT_EMAIL` / `SB_BACKUP_EMAIL`), paridad correo/WhatsApp y marca de los correos (`SB_BIZ_NAME`) |
 | `src/catalogs.test.js` | 14 | Catálogo inicial por tipo de negocio (`VITE_CATALOG` / `VITE_DEFAULT_SERVICES`) |
-| `src/api.test.js` | 7 | Transporte: mensajes de error, `loadData`/`saveData`, restablecimiento |
-| `src/excel.test.js` | 3 | Libro Excel (`buildReportWorkbook`): Resumen/Movimientos/Citas, hoja Clientes y las 9 paletas |
+| `src/api.test.js` | 12 | Transporte: mensajes de error (sin jerga para la clienta), `loadData`/`saveData`, **tope de espera de 25 s**, **reintento automático de cargas** (transitorio sí, error del servidor no), restablecimiento |
+| `src/excel.test.js` | 14 | Libro Excel (`buildReportWorkbook`): Resumen/Movimientos/Citas, hoja Clientes, las **12 paletas completas** y **contraste AA por paleta** (regresión: primario/t/t2 ≥4.5:1 sobre sus fondos, texto del botón ≥4.5:1 sobre las paradas del gradiente, balance legible y semánticos legibles) |
 
 ```bash
 npm test              # una vez
@@ -446,7 +476,7 @@ npm run build         # build de producción
 | **Servicios** | Catálogo, precios y duración; el historial de precios se guarda automáticamente. |
 | **Finanzas** | Ingresos vs. gastos, detalle, comparación mensual, top servicios y reportes. |
 | **Calendario** | Vista mensual de las citas. |
-| **Ajustes** | Tema/paleta, modo oscuro y restablecimiento protegido. |
+| **Ajustes** | Tema/paleta (12), saldo inicial y restablecimiento protegido. |
 
 > 🙋 Procedimientos paso a paso con ejemplos:
 > [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md).
@@ -484,12 +514,13 @@ Confirmadas en el código, no corregidas:
   Calendar falla, la app avisa y ofrece reintento, pero **no se puede hacer
   rollback** de la cita ya borrada. La app muestra el ID del evento para borrarlo
   a mano.
-- **El correo del destinatario vive solo en Script Properties.** Ni el
-  reporte, ni el respaldo semanal, ni el código de restablecimiento tienen
-  una dirección escrita en el código: códigos y reportes leen
-  `SB_AUTHORIZED_EMAIL`, y el respaldo semanal lee `SB_BACKUP_EMAIL` si
-  existe (para que pueda ir a otro correo) y si no, la misma.
-  **Si faltan esas propiedades no se envía nada** (el reset no gasta su cupo
+- **Los destinatarios de correo viven solo en Script Properties.** Ninguna
+  dirección está escrita en el código: los códigos de restablecimiento leen
+  `SB_AUTHORIZED_EMAIL` (**lista**: varias direcciones separadas por coma,
+  todas reciben el mismo código), los reportes leen `SB_REPORT_EMAIL` si
+  existe y si no `SB_AUTHORIZED_EMAIL`, y el respaldo semanal lee
+  `SB_BACKUP_EMAIL` si existe (para que pueda ir a otro correo) y si no, la
+  misma. **Si faltan las dos, no se envía nada** (el reset no gasta su cupo
   de solicitudes y los reportes/backups se omiten avisando en el log).
 - **El restablecimiento borra todo** (clientes, citas, gastos, el saldo
   inicial —hoja «Config»— y los eventos de Calendar) y **no se puede

@@ -56,8 +56,11 @@ cálculo.
 
 > ⚠️ **Si ves «Modo sin conexión»** en la parte de arriba, significa que la app
 > no pudo hablar con el servidor. Puedes seguir trabajando: lo que escribas se
-> guarda en el celular y se sincroniza después. Si el aviso no desaparece,
-> revisa la [sección 18](#18-errores-frecuentes).
+> guarda en el celular y se sincroniza después. Los fallos breves (la app
+> «despertando» a Google por la mañana) se arreglan **solos** con un reintento
+> automático, así que casi nunca verás este aviso. Si aparece, puedes
+> **cerrarlo con la ✕** y seguir trabajando; si no desaparece al rato, revisa
+> la [sección 18](#18-errores-frecuentes).
 
 ### Si te sale un error de «varias cuentas de Google»
 
@@ -89,12 +92,21 @@ En la parte inferior hay 7 botones:
 - **«✓ Sincronizado»** en verde → todo bien, los datos están guardados.
 - **«⟳ Sincronizando»** → la app está guardando o leyendo.
 - **«⚠»** en rojo y, debajo del menú, una franja **«⚠️ Modo sin conexión —
-  \<motivo\>»** → la app no pudo hablar con el servidor.
+  \<motivo\>»** → la app no pudo hablar con el servidor. La franja trae una
+  **✕ para cerrarla**: mientras esté cerrada no vuelve a molestar en cada
+  chequeo de 30 segundos (el ⚠ de arriba sigue avisando en silencio), y se
+  rearma sola cuando la conexión vuelve y vuelve a fallar.
 - Si el fallo fue al **guardar** (no al leer), la franja es **ROJA** y dice
   **«⚠️ No se pudo guardar. Tus cambios solo están en este celular»** con un
   botón **«↻ Reintentar guardar»**. Tócalo cuando vuelva la conexión: la app
   reenvía lo que faltó. **Mientras esa franja roja esté visible, no recargues
   la página**: lo que cambiaste aún no está en el servidor.
+  - La buena noticia: esa franja **casi nunca aparece**. Cuando Google
+    «despierta» despacio (típico por la mañana) o la señal falla un momento,
+    la app **reintenta sola** — dos veces más antes de avisarte — y en la
+    práctica el guardado termina saliendo sin que notes nada. Si aun así
+    ves la franja, es que no hubo conexión de verdad: revisa el internet
+    y usa el botón de reintento.
 - El nombre del negocio y su emoji (si se configuraron).
 
 ---
@@ -106,8 +118,9 @@ En la parte inferior hay 7 botones:
 **El Panel muestra:**
 
 - **Citas de Hoy** — la lista de las citas de hoy con su hora, clienta,
-  servicios y precio. Las completadas muestran una etiqueta verde **✓** y las
-  marcadas como no asistió una etiqueta roja **✗ No asistió**.
+  servicios y precio (el título lleva el emoji de tu negocio). Las
+  completadas muestran una etiqueta verde **✓** y las marcadas como no
+  asistió una etiqueta roja **✗ No asistió**.
 - **Citas por recordar** — citas de mañana (u hoy) a las que aún no les has
   mandado recordatorio, con un botón para mandarlo.
 - **Accesos rápidos** — «+ Nueva cita», «Ver calendario», «Finanzas».
@@ -382,10 +395,15 @@ no tiene duración, WXYZ usa **60 minutos** por defecto.
 **Pasos:**
 
 1. Toca **📆 Calendario**.
-2. Navega entre meses con **‹** y **›**.
+2. Navega entre meses con **‹** y **›** (o cambia a la **vista Semana**).
 3. Verás las citas pintadas en cada día.
-4. Toca un día para ver sus citas.
-5. Toca una cita para **abrir su detalle** o **editarla**.
+4. Toca un día: abajo aparecen sus citas en tarjetas.
+5. Cada tarjeta trae sus botones:
+   - **👁 Detalle** — para ver todo de la cita.
+   - **📅 Ir a cita** — te lleva a la pestaña **Citas** directamente a ESA
+     cita: se resalta unos segundos y la pantalla baja hasta ella.
+   - **✏️ Editar**, **💬 WhatsApp** y **✕** (eliminar) según el estado de
+     la cita.
 
 **¿Y si un evento no aparece en Google Calendar?**
 
@@ -401,6 +419,13 @@ no tiene duración, WXYZ usa **60 minutos** por defecto.
 - **No hay re-sincronización automática** en sentido contrario: si borras el
   evento **directo en Google Calendar**, esa cita **seguirá existiendo en WXYZ**.
   Borra o edita la cita **desde la app**.
+
+> 📆 **¿Dónde salen tus citas en Google Calendar?** Si tu negocio tiene su
+> propio calendario (p. ej. *«Citas \<nombre\>»*), ahí aparecen. Comprueba
+> que lo tengas **añadido en tu celular** y, si te falta, pídeselo al
+> desarrollador para volver a suscribirte: **no se pierde ninguna cita**
+> aunque lo quites y lo vuelvas a poner. Tu acceso es de **solo lectura**:
+> ver las citas allí no permite modificar ni borrar la agenda.
 
 ---
 
@@ -457,8 +482,10 @@ no tiene duración, WXYZ usa **60 minutos** por defecto.
 
 ### El botón «💬 WhatsApp admin» (del reporte)
 
-Está en la pestaña **Reportes**. Envía el resumen del período al **número del
-administrador**.
+Está en la pestaña **Reportes**, junto con **«📊 Exportar Excel»** y
+**«📧 Enviar por correo»** (que manda el mismo resumen al correo que
+escribas, con copia automática al tuyo). Envía el resumen del período al
+**número del administrador**.
 
 > Si ese botón aparece **deshabilitado**, es porque la app no tiene configurado
 > el número del admin (es un ajuste técnico; ver
@@ -637,6 +664,21 @@ que entró y salió, con los filtros **Todo · Ingresos · Gastos**, ordenados
 2. Se abre WhatsApp con el resumen ya escrito.
 3. Dale **Enviar**.
 
+### Enviar el reporte por correo 📧
+
+1. Toca **«📧 Enviar por correo»** (debajo de los otros dos botones).
+2. Escribe el correo de quien debe recibir el reporte y toca **Enviar**.
+3. La app te confirma: **«El informe se envió a: \<correo\> y una copia a
+   tu correo electrónico»** — la copia sale SIEMPRE, sin que tengas que
+   escribirla, al correo de reportes que configuró el administrador.
+4. El correo llega **exactamente igual que los reportes automáticos**:
+   mismo diseño, mismos **emojis** (📅 📊 💰), asunto
+   **«[REPORTE MANUAL] Actividad - \<período\>»** y el **Excel del
+   período adjunto** — del día, mes, rango o año que estés viendo.
+
+> Si te sale «Escribe un correo válido», revisa que esté completo y con
+> punto (ej: `nombre@correo.com`) y que sea **un solo correo**, sin comas.
+
 ### ⚠️ WhatsApp y correo deben decir lo mismo
 
 WXYZ genera **el mismo texto** para el mensaje de WhatsApp y para el correo
@@ -657,6 +699,11 @@ Si el administrador configuró los disparadores, llegan por correo (a las
 
 Cada correo trae el **Excel adjunto**. Si el Excel no se pudiera generar, el
 correo **igual llega**, pero sin adjunto y con un aviso en el cuerpo.
+
+> 📧 **A quién llega qué:** estos **4 reportes** van al correo de la
+> **usuaria**. Lo que va al correo del **dueño del proyecto** es otra cosa:
+> la **copia semanal de la hoja** (sábados 9:00) y los **códigos de
+> restablecimiento** (se piden desde la app, no son disparadores).
 
 > 📌 En los registros de ejecución verás a diario
 > `SKIP reporte mensual/anual: hoy no es el último día` — **eso es normal**:

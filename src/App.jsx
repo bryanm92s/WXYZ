@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  loadData, saveData,
+  loadData, saveData, isTransientError,
   requestResetCode as apiRequestResetCode,
   verifyResetCode   as apiVerifyResetCode,
   resetData         as apiResetData,
@@ -26,23 +26,23 @@ import { resolveCatalog } from './catalogs.js'
 export const PALETTES = [
   { 
     id:'rosa',    
-    name:'Rosa',    
+    name:'Palo de Rosa',    
     emoji:'🌸', 
-    primary:'#B5524A', 
-    pd:'#8E3E38', 
-    pl:'#FAEAE8', 
-    bg:'#F7F0EC', 
-    border:'#E8D0CC', 
-    t:'#1E0E0C', 
-    t2:'#7A5E5A',
-    gradient:'linear-gradient(135deg, #B5524A 0%, #D47A6A 50%, #E8A898 100%)',
-    gradientSoft:'linear-gradient(135deg, #FAEAE8 0%, #F7F0EC 50%, #E8D0CC 100%)',
-    glass:'rgba(181, 82, 74, 0.12)',
-    glassStrong:'rgba(181, 82, 74, 0.25)',
+    primary:'#A84B60', 
+    pd:'#83394C', 
+    pl:'#FAE9ED', 
+    bg:'#F9F1F3', 
+    border:'#EAD0D7', 
+    t:'#1F1014', 
+    t2:'#7A5E64',
+    gradient:'linear-gradient(135deg, #A84B60 0%, #B45A6E 50%, #C57F93 100%)',
+    gradientSoft:'linear-gradient(135deg, #FAE9ED 0%, #F9F1F3 50%, #EAD0D7 100%)',
+    glass:'rgba(168, 75, 96, 0.12)',
+    glassStrong:'rgba(168, 75, 96, 0.25)',
     neoLight:'#FFFFFF',
-    neoDark:'#E8D0CC',
-    neoShadow:'rgba(181, 82, 74, 0.15)',
-    neoShadowDark:'rgba(142, 62, 56, 0.2)'
+    neoDark:'#EAD0D7',
+    neoShadow:'rgba(168, 75, 96, 0.15)',
+    neoShadowDark:'rgba(131, 57, 76, 0.2)'
   },
   { 
     id:'morado',  
@@ -55,7 +55,7 @@ export const PALETTES = [
     border:'#D8CFF0', 
     t:'#1A1228', 
     t2:'#6A5A80',
-    gradient:'linear-gradient(135deg, #7C4DBD 0%, #9B6FD8 50%, #B898F0 100%)',
+    gradient:'linear-gradient(135deg, #7C4DBD 0%, #7E55BE 50%, #A583D8 100%)',
     gradientSoft:'linear-gradient(135deg, #EDE6F8 0%, #F4F0FA 50%, #D8CFF0 100%)',
     glass:'rgba(124, 77, 189, 0.12)',
     glassStrong:'rgba(124, 77, 189, 0.25)',
@@ -68,15 +68,15 @@ export const PALETTES = [
     id:'azul',    
     name:'Azul',    
     emoji:'💙', 
-    primary:'#3A6FBD', 
+    primary:'#3566B3', 
     pd:'#2A5290', 
-    pl:'#E6EEF8', 
+    pl:'#F1F6FD', 
     bg:'#F0F4FA', 
     border:'#C8D8EE', 
     t:'#0E1A2C', 
     t2:'#5A6A80',
-    gradient:'linear-gradient(135deg, #3A6FBD 0%, #5A8FD8 50%, #8AAEF0 100%)',
-    gradientSoft:'linear-gradient(135deg, #E6EEF8 0%, #F0F4FA 50%, #C8D8EE 100%)',
+    gradient:'linear-gradient(135deg, #3566B3 0%, #4272C4 50%, #6490D2 100%)',
+    gradientSoft:'linear-gradient(135deg, #F1F6FD 0%, #F0F4FA 50%, #C8D8EE 100%)',
     glass:'rgba(58, 111, 189, 0.12)',
     glassStrong:'rgba(58, 111, 189, 0.25)',
     neoLight:'#FFFFFF',
@@ -90,13 +90,13 @@ export const PALETTES = [
     emoji:'💚', 
     primary:'#2E7D52', 
     pd:'#1F5C3C', 
-    pl:'#E6F5EC', 
+    pl:'#F0FAF5', 
     bg:'#F0F8F4', 
     border:'#C0E0CC', 
     t:'#0A1E14', 
     t2:'#4A7060',
-    gradient:'linear-gradient(135deg, #2E7D52 0%, #4A9D6E 50%, #7AC898 100%)',
-    gradientSoft:'linear-gradient(135deg, #E6F5EC 0%, #F0F8F4 50%, #C0E0CC 100%)',
+    gradient:'linear-gradient(135deg, #2E7D52 0%, #317C55 50%, #4FA371 100%)',
+    gradientSoft:'linear-gradient(135deg, #F0FAF5 0%, #F0F8F4 50%, #C0E0CC 100%)',
     glass:'rgba(46, 125, 82, 0.12)',
     glassStrong:'rgba(46, 125, 82, 0.25)',
     neoLight:'#FFFFFF',
@@ -108,15 +108,15 @@ export const PALETTES = [
     id:'dorado',  
     name:'Dorado',  
     emoji:'✨', 
-    primary:'#A07820', 
-    pd:'#785A14', 
-    pl:'#FAF4E0', 
-    bg:'#FAF6EE', 
-    border:'#E8DEB8', 
-    t:'#1E1A0C', 
+    primary:'#896514',
+    pd:'#785A14',
+    pl:'#FDF8EA',
+    bg:'#FCF8F3',
+    border:'#E8DEB8',
+    t:'#241C08',
     t2:'#7A7040',
-    gradient:'linear-gradient(135deg, #A07820 0%, #C49A2A 50%, #E8C858 100%)',
-    gradientSoft:'linear-gradient(135deg, #FAF4E0 0%, #FAF6EE 50%, #E8DEB8 100%)',
+    gradient:'linear-gradient(135deg, #896514 0%, #8F6E1A 50%, #B08F1D 100%)',
+    gradientSoft:'linear-gradient(135deg, #FDF8EA 0%, #FCF8F3 50%, #E8DEB8 100%)',
     glass:'rgba(160, 120, 32, 0.12)',
     glassStrong:'rgba(160, 120, 32, 0.25)',
     neoLight:'#FFFFFF',
@@ -128,14 +128,14 @@ export const PALETTES = [
     id:'fucsia',  
     name:'Fucsia',  
     emoji:'🌺', 
-    primary:'#C04A82', 
-    pd:'#903060', 
-    pl:'#FCE6F2', 
-    bg:'#FDF0F8', 
-    border:'#ECC8DF', 
-    t:'#1E0C18', 
+    primary:'#B04078',
+    pd:'#903060',
+    pl:'#FCE6F2',
+    bg:'#FDF0F8',
+    border:'#ECC8DF',
+    t:'#230A18',
     t2:'#7A5070',
-    gradient:'linear-gradient(135deg, #C04A82 0%, #D86AA0 50%, #F098C8 100%)',
+    gradient:'linear-gradient(135deg, #B04078 0%, #B84C84 50%, #D073A4 100%)',
     gradientSoft:'linear-gradient(135deg, #FCE6F2 0%, #FDF0F8 50%, #ECC8DF 100%)',
     glass:'rgba(192, 74, 130, 0.12)',
     glassStrong:'rgba(192, 74, 130, 0.25)',
@@ -145,37 +145,17 @@ export const PALETTES = [
     neoShadowDark:'rgba(144, 48, 96, 0.2)'
   },
   {
-    id:'coral',
-    name:'Coral',
-    emoji:'💅',
-    primary:'#D96A50',
-    pd:'#B04A34',
-    pl:'#FBEAE3',
-    bg:'#FAF3EF',
-    border:'#F2CFC5',
-    t:'#1E0F0A',
-    t2:'#8A6256',
-    gradient:'linear-gradient(135deg, #D96A50 0%, #E88A6E 50%, #F5B098 100%)',
-    gradientSoft:'linear-gradient(135deg, #FBEAE3 0%, #FAF3EF 50%, #F2CFC5 100%)',
-    glass:'rgba(217, 106, 80, 0.12)',
-    glassStrong:'rgba(217, 106, 80, 0.25)',
-    neoLight:'#FFFFFF',
-    neoDark:'#F2CFC5',
-    neoShadow:'rgba(217, 106, 80, 0.15)',
-    neoShadowDark:'rgba(176, 74, 52, 0.2)'
-  },
-  {
     id:'salvia',
     name:'Salvia',
     emoji:'🌿',
-    primary:'#628C70',
-    pd:'#4A6E57',
+    primary:'#4A6E57',
+    pd:'#365345',
     pl:'#EAF2EC',
     bg:'#F2F6F3',
     border:'#CFE0D5',
-    t:'#0F1A12',
+    t:'#0F1B12',
     t2:'#5E7468',
-    gradient:'linear-gradient(135deg, #628C70 0%, #82AC8E 50%, #A8C7B2 100%)',
+    gradient:'linear-gradient(135deg, #4A6E57 0%, #527D5F 50%, #6F9A7B 100%)',
     gradientSoft:'linear-gradient(135deg, #EAF2EC 0%, #F2F6F3 50%, #CFE0D5 100%)',
     glass:'rgba(98, 140, 112, 0.12)',
     glassStrong:'rgba(98, 140, 112, 0.25)',
@@ -187,7 +167,7 @@ export const PALETTES = [
   {
     id:'carbon',
     name:'Carbón',
-    emoji:'💈',
+    emoji:'⚫',
     primary:'#4A5560',
     pd:'#333C46',
     pl:'#EAEDF0',
@@ -195,7 +175,7 @@ export const PALETTES = [
     border:'#CDD4DA',
     t:'#101418',
     t2:'#5C6670',
-    gradient:'linear-gradient(135deg, #4A5560 0%, #68747F 50%, #8B97A1 100%)',
+    gradient:'linear-gradient(135deg, #4A5560 0%, #525E69 50%, #7A8794 100%)',
     gradientSoft:'linear-gradient(135deg, #EAEDF0 0%, #F2F4F6 50%, #CDD4DA 100%)',
     glass:'rgba(74, 85, 96, 0.12)',
     glassStrong:'rgba(74, 85, 96, 0.25)',
@@ -203,6 +183,105 @@ export const PALETTES = [
     neoDark:'#CDD4DA',
     neoShadow:'rgba(74, 85, 96, 0.15)',
     neoShadowDark:'rgba(51, 60, 70, 0.2)'
+  },
+  {
+    /* Tema barbería: los 4 colores del logo — fondo blanco, texto
+       negro, botones con gradiente negro→azul→rojo y acento rojo
+       barbería. Solo redefine los semánticos --red/--red-bg (los `??`
+       de applyTheme le dan el blanco/superficies por defecto). */
+    id:'barberia',
+    name:'Barbería',
+    emoji:'💈',
+    primary:'#1D4FD7',
+    pd:'#10192B',
+    pl:'#E8EDF6',
+    bg:'#FCFCFD',
+    border:'#E2E5EA',
+    t:'#15181D',
+    t2:'#5E6570',
+    gradient:'linear-gradient(135deg, #10192B 0%, #1D4FD7 55%, #C8102E 100%)',
+    gradientSoft:'linear-gradient(135deg, #E8EDF6 0%, #FCFCFD 50%, #DDE3ED 100%)',
+    glass:'rgba(29, 79, 215, 0.12)',
+    glassStrong:'rgba(29, 79, 215, 0.25)',
+    neoLight:'#FFFFFF',
+    neoDark:'#E2E5EA',
+    neoShadow:'rgba(21, 24, 29, 0.15)',
+    neoShadowDark:'rgba(16, 25, 43, 0.2)',
+    red:'#C8102E',
+    redBg:'#FCE9EB'
+  },
+  {
+    /* Gala — la invitación de lujo: crema champán con ORO ANTIGUO
+       (marrón-dorado, nunca amarillo chillón) y acentos carbón.
+       Tema CLARO elegante: el gradiente bronce→oro lleva texto
+       blanco (5-8.9:1 en cada parada) y las superficies usan los
+       blancos por defecto. El champán #F5E6C8 del encargo vive en
+       el gradiente suave y el tinte va en #F9F3E6 (4.6:1 con el
+       oro). */
+    id:'gala',
+    name:'Gala',
+    emoji:'🎩',
+    primary:'#846317',
+    pd:'#5C4712',
+    pl:'#F9F3E6',
+    bg:'#F8F2E5',
+    border:'#E6DBC6',
+    t:'#1A1B1F',
+    t2:'#6B6355',
+    gradient:'linear-gradient(135deg, #5C4712 0%, #75591B 50%, #846317 100%)',
+    gradientSoft:'linear-gradient(135deg, #F5E6C8 0%, #F8F2E5 50%, #E6DBC6 100%)',
+    glass:'rgba(138, 106, 28, 0.10)',
+    glassStrong:'rgba(138, 106, 28, 0.22)',
+    neoLight:'#FFFFFF',
+    neoDark:'#E6DBC6',
+    neoShadow:'rgba(92, 71, 18, 0.15)',
+    neoShadowDark:'rgba(60, 46, 10, 0.2)'
+  },
+  {
+    id:'marino',
+    name:'Marino',
+    emoji:'⚓',
+    primary:'#1F3F7A',
+    pd:'#152C55',
+    pl:'#E6EBF3',
+    bg:'#F6F8FB',
+    border:'#D3DCE8',
+    t:'#0C1626',
+    t2:'#5F6E83',
+    gradient:'linear-gradient(135deg, #1F3F7A 0%, #2F4E85 50%, #6686B8 100%)',
+    gradientSoft:'linear-gradient(135deg, #E6EBF3 0%, #F6F8FB 50%, #D3DCE8 100%)',
+    glass:'rgba(31, 63, 122, 0.12)',
+    glassStrong:'rgba(31, 63, 122, 0.25)',
+    neoLight:'#FFFFFF',
+    neoDark:'#D3DCE8',
+    neoShadow:'rgba(31, 63, 122, 0.15)',
+    neoShadowDark:'rgba(21, 44, 85, 0.2)'
+  },
+  {
+    /* Burdeos — la etiqueta de vino: crema cálido, VINO burdeos de
+       primario y espresso en el texto. Tema CLARO (superficies
+       blancas por defecto): el vino funciona como texto (9-11:1
+       sobre blanco, crema y su tinte) y como relleno con texto
+       blanco (8.5-14.8:1 por parada del gradiente). Sin dorados:
+       el oro del encargo se retiró y el protagonista es el vino. */
+    id:'burdeos',
+    name:'Burdeos',
+    emoji:'🍷',
+    primary:'#6B1E2E',
+    pd:'#4A1520',
+    pl:'#F5E2E5',
+    bg:'#FAF3F0',
+    border:'#EBD8D6',
+    t:'#2A1A12',
+    t2:'#756058',
+    gradient:'linear-gradient(135deg, #4A1520 0%, #6B1E2E 50%, #8A2A40 100%)',
+    gradientSoft:'linear-gradient(135deg, #F5E2E5 0%, #FAF3F0 50%, #EBD8D6 100%)',
+    glass:'rgba(107, 30, 46, 0.10)',
+    glassStrong:'rgba(107, 30, 46, 0.22)',
+    neoLight:'#FFFFFF',
+    neoDark:'#EBD8D6',
+    neoShadow:'rgba(107, 30, 46, 0.15)',
+    neoShadowDark:'rgba(74, 21, 32, 0.2)'
   },
 ]
 
@@ -214,20 +293,39 @@ const applyTheme = (pid) => {
   r.setProperty('--primary-d', p.pd)
   r.setProperty('--primary-l', p.pl)
   r.setProperty('--bg',        p.bg)
-  r.setProperty('--card',      '#FFFFFF')
-  r.setProperty('--surface',   '#FFFFFF')
+  /* Superficies por paleta — solo el tema oscuro las redefine; para las
+     claras el `??` mantiene el blanco de siempre. */
+  r.setProperty('--card',      p.card    ?? '#FFFFFF')
+  r.setProperty('--surface',   p.surface ?? '#FFFFFF')
   r.setProperty('--border',    p.border)
   r.setProperty('--t',         p.t)
   r.setProperty('--t2',        p.t2)
-  r.setProperty('--green',     '#2E7D52')
-  r.setProperty('--green-bg',  '#EDF7F0')
-  r.setProperty('--gold',      '#C49A1A')
-  r.setProperty('--gold-bg',   '#FFF8E6')
-  r.setProperty('--red',       '#B03030')
-  r.setProperty('--red-bg',    '#FFF0F0')
-  r.setProperty('--warn-bg',   '#FFF4DC')
-  r.setProperty('--warn-t',    '#7A5000')
-  r.setProperty('--input-bg',  '#FFFFFF')
+
+  /* ── Colores semánticos (verde/gold/rojo/warn) por paleta:
+     el tema oscuro los aclara/oscurece para legibilidad; el resto no
+     los define y usa los valores fijos de siempre. ── */
+  r.setProperty('--green',     p.green   ?? '#2E7D52')
+  r.setProperty('--green-bg',  p.greenBg ?? '#F2FBF6')
+  r.setProperty('--gold',      p.gold    ?? '#8A6700')
+  r.setProperty('--gold-bg',   p.goldBg  ?? '#FFF8E6')
+  r.setProperty('--red',       p.red     ?? '#B03030')
+  r.setProperty('--red-bg',    p.redBg   ?? '#FFF0F0')
+  r.setProperty('--warn-bg',   p.warnBg  ?? '#FFF4DC')
+  r.setProperty('--warn-t',    p.warnT   ?? '#7A5000')
+  r.setProperty('--input-bg',  p.inputBg ?? '#FFFFFF')
+
+  /* ── Texto sobre rellenos saturados (gradientes del tema, chips de
+     --primary y las tarjetas verde/rojo del neto): blanco por defecto;
+     una paleta con rellenos claros puede redefinirlo a oscuro. ── */
+  r.setProperty('--grad-t',    p.gradT ?? '#FFFFFF')
+  r.setProperty('--grad-t2',   p.gradT2 ?? 'rgba(255,255,255,0.75)')
+
+  /* ── Superficies translúcidas (chrome): nav, footer, card-glass y
+     modales consumen estas vars; Clara = rgba blancos, Oscura = vidrio
+     leve sobre el negro. ── */
+  r.setProperty('--chrome-bg',  p.chromeBg  ?? 'rgba(255,255,255,0.75)')
+  r.setProperty('--chrome-bgr', p.chromeBgr ?? 'rgba(255,255,255,0.96)')
+  r.setProperty('--chrome-brd', p.chromeBrd ?? 'rgba(255,255,255,0.5)')
   
   /* ── Gradient & Glassmorphism ── */
   r.setProperty('--gradient',       p.gradient)
@@ -435,6 +533,14 @@ export default function App() {
   const [saveFailed, setSaveFailed] = useState(false)
   const [saveErr,    setSaveErr]    = useState('')
 
+  // Banner «Modo sin conexión» cerrable: el reintento automático de
+  // loadData ya se come los fallos transitorios (frío/404 puntual);
+  // el que llega hasta aquí es un fallo REAL. Con el ✕ se oculta
+  // hasta la próxima reconexión (el SyncBadge del header sigue
+  // informando el estado en silencio). Vuelve a aparecer tras una
+  // reconexión exitosa y un nuevo fallo.
+  const [errHidden, setErrHidden] = useState(false)
+
   // Reenvía el payload que falló. No vuelve a aplicar los cambios al
   // estado local: ya están aplicados (se hicieron de forma optimista).
   const retrySave = useCallback(async () => {
@@ -458,6 +564,9 @@ export default function App() {
     applyTheme(themePalette)
     try{ localStorage.setItem('sz_palette',themePalette) }catch{}
   },[themePalette])
+
+  // Reconexión exitosa → el banner se rearma para un próximo fallo.
+  useEffect(()=>{ if(status!=='error') setErrHidden(false) },[status])
 
   // ── Un SOLO efecto de branding ─────────────────────────────────
   // El de la línea 360 es el único que escribe `document.title`, el
@@ -503,7 +612,28 @@ export default function App() {
     setSt('saving')
     savingRef.current = true
     try {
-      const r = await saveData(payload)
+      let r
+      try {
+        r = await saveData(payload)
+      } catch(e) {
+        /* Un fallo TRANSITORIO — Google «despertando» por la mañana, un
+           404 puntual mientras se actualiza el despliegue — se reintenta
+           SOLO (a los 4 s y a los 12 s) antes de mostrar la franja roja:
+           la operadora nunca debería ver un aviso por un simple arranque
+           en frío. Reenviar es seguro: las hojas se reemplazan con el
+           MISMO array (filas por id, nunca duplica) y createCalEvent
+           crea con protección anti-duplicados (mismo título y hora →
+           devuelve el evento existente en vez de crear otro). */
+        if (!isTransientError(e.message)) throw e
+        await new Promise(res => setTimeout(res, 4000))
+        try {
+          r = await saveData(payload)
+        } catch(e2) {
+          if (!isTransientError(e2.message)) throw e2
+          await new Promise(res => setTimeout(res, 12000))
+          r = await saveData(payload)
+        }
+      }
       setSt('ok'); setLS(new Date())
       savingRef.current = false
       setTimeout(() => refresh(true), 1500) // wait 1.5s for Sheets to commit before re-reading
@@ -511,9 +641,10 @@ export default function App() {
     }
     catch(e) {
       savingRef.current = false
-      // El guardado NO llegó al servidor: se recuerda el payload para el
-      // botón «Reintentar guardar» del banner, y el estado queda en
-      // 'error' SIN autocorrección a los 5 s (antes se disfrazaba de ok).
+      // El guardado no llegó al servidor NI con los reintentos: se
+      // recuerda el payload para el botón «Reintentar guardar» del
+      // banner, y el estado queda en 'error' SIN autocorrección a los
+      // 5 s (antes se disfrazaba de ok).
       failedSaveRef.current = payload
       setSaveErr(e.message); setSaveFailed(true)
       setEM(e.message); setSt('error')
@@ -612,8 +743,21 @@ export default function App() {
      después borrar el evento con SU id, comprobar la respuesta y, si falla,
      avisar y ofrecer un reintento con el modal propio del diseño. */
   const calDelete = async eventId => {
+    const run = () => saveData({ action:'deleteCalendarEvent', eventId })
     try {
-      const r = await saveData({ action:'deleteCalendarEvent', eventId })
+      let r
+      try {
+        r = await run()
+      } catch(e) {
+        /* Borrar un evento es IDEMPOTENTE (borrarlo dos veces es lo mismo
+           que una): un fallo transitorio — arranque en frío, 404 puntual
+           al actualizarse el despliegue — se reintenta UNA vez a los 4 s
+           antes de molestar con el modal, igual que loadData. El evento
+           de las 7:22 a. m. se habría borrado solo, sin aviso. */
+        if (!isTransientError(e.message)) throw e
+        await new Promise(res => setTimeout(res, 4000))
+        r = await run()
+      }
       const cr = r && r.calResult
       if (cr && cr.ok) return { ok:true, alreadyGone: !!cr.alreadyGone }
       return { ok:false, error:(cr && cr.error) || 'El servidor no devolvió respuesta de Google Calendar.' }
@@ -679,17 +823,17 @@ export default function App() {
             : <div style={{fontSize:28,filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.15))'}}>{BIZ_EMOJI}</div>
           }
           <div>
-            <div style={{fontFamily:'Georgia,serif',fontSize:16,color:'white',fontWeight:700,textShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>{BIZ_NAME}</div>
-            <div style={{fontSize:9,color:'rgba(255,255,255,0.85)',letterSpacing:'0.14em',textTransform:'uppercase',fontWeight:500}}>{BIZ_SUBTITLE||BIZ_NAME}</div>
+            <div style={{fontFamily:'Georgia,serif',fontSize:16,color:'var(--grad-t)',fontWeight:700}}>{BIZ_NAME}</div>
+            <div style={{fontSize:11,color:'var(--grad-t2)',letterSpacing:'0.14em',textTransform:'uppercase',fontWeight:500}}>{BIZ_SUBTITLE||BIZ_NAME}</div>
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <button onClick={()=>refresh(true)} style={{background:'rgba(255,255,255,0.2)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:20,padding:'6px 12px',color:'white',fontSize:14,cursor:'pointer',fontFamily:'inherit',fontWeight:600,backdropFilter:'var(--glass-blur-sm)',WebkitBackdropFilter:'var(--glass-blur-sm)',transition:'all .15s'}} onMouseOver={e=>e.target.style.background='rgba(255,255,255,0.3)'} onMouseOut={e=>e.target.style.background='rgba(255,255,255,0.2)'}>↻</button>
+          <button onClick={()=>refresh(true)} style={{background:'rgba(255,255,255,0.2)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:20,padding:'6px 12px',color:'var(--grad-t)',fontSize:14,cursor:'pointer',fontFamily:'inherit',fontWeight:600,backdropFilter:'var(--glass-blur-sm)',WebkitBackdropFilter:'var(--glass-blur-sm)',transition:'all .15s'}} onMouseOver={e=>e.target.style.background='rgba(255,255,255,0.3)'} onMouseOut={e=>e.target.style.background='rgba(255,255,255,0.2)'}>↻</button>
           <SyncBadge status={status} lastSync={lastSync}/>
         </div>
       </header>
 
-      <nav style={{background:'rgba(255,255,255,0.8)',backdropFilter:'var(--glass-blur)',WebkitBackdropFilter:'var(--glass-blur)',borderBottom:'1px solid rgba(0,0,0,0.04)',display:'flex',overflowX:'auto',padding:'0 2px',scrollbarWidth:'none',boxShadow:'var(--shadow-sm)'}}>
+      <nav style={{background:'var(--chrome-bg)',backdropFilter:'var(--glass-blur)',WebkitBackdropFilter:'var(--glass-blur)',borderBottom:'1px solid rgba(0,0,0,0.04)',display:'flex',overflowX:'auto',padding:'0 4px',scrollbarWidth:'none',boxShadow:'var(--shadow-sm)'}}>
         {[
           ['dashboard',  'grid',   'Panel'],
           ['appointments','cal',   'Citas'],
@@ -702,23 +846,29 @@ export default function App() {
           <button key={id} onClick={()=>setTab(id)} className={`nb${tab===id?' act':''}`}
             style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,paddingTop:9,paddingBottom:9,paddingLeft:12,paddingRight:12}}>
             <NavIcon type={ic} active={tab===id}/>
-            <span style={{fontSize:10,letterSpacing:'.02em'}}>{lb}</span>
+            <span style={{fontSize:11,letterSpacing:'.02em'}}>{lb}</span>
           </button>
         ))}
       </nav>
       </div>
 
-      <main style={{padding:'16px max(14px, env(safe-area-inset-right, 0px)) 16px max(14px, env(safe-area-inset-left, 0px))',maxWidth:680,margin:'0 auto'}}>
+      <main style={{padding:'16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px))',maxWidth:680,margin:'0 auto'}}>
         {saveFailed && (
           <div className="warn-box" style={{background:'var(--red-bg)',border:'1.5px solid var(--red)',color:'var(--red)',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
             <span style={{flex:'1 1 auto',minWidth:0}}>
               ⚠️ <strong>No se pudo guardar.</strong> Tus cambios solo están en este celular.
               {saveErr ? ` (${saveErr})` : ''}
             </span>
-            <button className="btn-sm" onClick={retrySave} style={{background:'var(--red)',color:'white',border:'none'}}>↻ Reintentar guardar</button>
+            <button className="btn-sm" onClick={retrySave} style={{background:'var(--red)',color:'var(--grad-t)',border:'none'}}>↻ Reintentar guardar</button>
           </div>
         )}
-        {!saveFailed && status==='error' && <div className="warn-box">⚠️ Modo sin conexión — {errMsg}</div>}
+        {!saveFailed && status==='error' && !errHidden && (
+          <div className="warn-box" style={{display:'flex',alignItems:'flex-start',gap:10}}>
+            <span style={{flex:'1 1 auto',minWidth:0}}>⚠️ Modo sin conexión — {errMsg}</span>
+            <button onClick={()=>setErrHidden(true)} aria-label="Ocultar aviso de conexión"
+              style={{background:'none',border:'none',cursor:'pointer',fontSize:16,padding:'2px 6px',lineHeight:1,flexShrink:0}}>✕</button>
+          </div>
+        )}
         {tab==='dashboard'     && <Dashboard      {...p}/>}
         {tab==='appointments'  && <ApptsTab       {...p}/>}
         {tab==='clients'       && <ClientsTab     {...p}/>}
@@ -734,7 +884,7 @@ export default function App() {
         {tab==='report'          && <ReportTab       {...p}/>}
       </main>
 
-      <footer style={{textAlign:'center',padding:'20px 14px calc(28px + env(safe-area-inset-bottom, 0px))',borderTop:'1px solid var(--border)',marginTop:8,background:'rgba(255,255,255,0.7)',backdropFilter:'var(--glass-blur)',WebkitBackdropFilter:'var(--glass-blur)'}}>
+      <footer style={{textAlign:'center',padding:'20px 14px calc(28px + env(safe-area-inset-bottom, 0px))',borderTop:'1px solid var(--border)',marginTop:8,background:'var(--chrome-bg)',backdropFilter:'var(--glass-blur)',WebkitBackdropFilter:'var(--glass-blur)'}}>
         <span style={{fontSize:11,color:'var(--t2)',letterSpacing:'.03em',display:'inline-flex',alignItems:'center',gap:6,flexWrap:'wrap',justifyContent:'center'}}>
           <span>{BIZ_EMOJI} {BIZ_NAME}</span>
           <span style={{color:'var(--border)'}}>|</span>
@@ -754,7 +904,7 @@ export default function App() {
 function Modal({msg, onOk, onCancel, okLabel='Eliminar', cancelLabel='Cancelar'}) {
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'var(--glass-blur-sm)',WebkitBackdropFilter:'var(--glass-blur-sm)'}}>
-      <div style={{background:'rgba(255,255,255,0.95)',backdropFilter:'var(--glass-blur)',WebkitBackdropFilter:'var(--glass-blur)',borderRadius:24,padding:32,maxWidth:360,width:'100%',maxHeight:'calc(100dvh - 40px)',overflowY:'auto',textAlign:'center',boxShadow:'var(--shadow-xl)',border:'1px solid rgba(255,255,255,0.5)'}}>
+      <div style={{background:'var(--chrome-bgr)',backdropFilter:'var(--glass-blur)',WebkitBackdropFilter:'var(--glass-blur)',borderRadius:24,padding:32,maxWidth:360,width:'100%',maxHeight:'calc(100dvh - 40px)',overflowY:'auto',textAlign:'center',boxShadow:'var(--shadow-xl)',border:'1px solid var(--chrome-brd)'}}>
         <div style={{fontSize:40,marginBottom:16}}>⚠️</div>
         <div style={{fontSize:15,fontWeight:600,color:'var(--t)',marginBottom:22,lineHeight:1.5}}>{msg}</div>
         <div style={{display:'flex',gap:10,justifyContent:'center'}}>
@@ -785,7 +935,7 @@ function PayIcon({m, h=18}) {
 function PayModal({appt, onPick, onCancel}) {
   return (
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={onCancel}>
-      <div style={{background:'rgba(255,255,255,0.97)',borderRadius:24,padding:28,maxWidth:360,width:'100%',maxHeight:'calc(100dvh - 40px)',overflowY:'auto',textAlign:'center',boxShadow:'0 10px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:'var(--chrome-bgr)',borderRadius:24,padding:28,maxWidth:360,width:'100%',maxHeight:'calc(100dvh - 40px)',overflowY:'auto',textAlign:'center',boxShadow:'0 10px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
         <div style={{fontSize:36,marginBottom:10}}>💳</div>
         <div style={{fontSize:16,fontWeight:700,color:'var(--t)',marginBottom:4}}>¿Cómo se pagó el servicio?</div>
         <div style={{fontSize:12,color:'var(--t2)',marginBottom:18}}>{appt.clientName} · {fmtM(appt.totalPrice||appt.servicePrice)}</div>
@@ -1006,14 +1156,20 @@ function CirclePager({ page, total, onPage, size=ITEM_PAGE_SIZE }) {
 function GS() { return <style>{`
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
   :root{
-    --primary:#B5524A;--primary-d:#8E3E38;--primary-l:#FAEAE8;
-    --bg:#F7F0EC;--card:#FFFFFF;--surface:#FFFFFF;--border:#E8D0CC;
-    --t:#1E0E0C;--t2:#7A5E5A;--gold:#C49A1A;--gold-bg:#FFF8E6;
-    --green:#2E7D52;--green-bg:#EDF7F0;--red:#B03030;--red-bg:#FFF0F0;
+    --primary:#A84B60;--primary-d:#83394C;--primary-l:#FAE9ED;
+    --bg:#F9F1F3;--card:#FFFFFF;--surface:#FFFFFF;--border:#EAD0D7;
+    --t:#1F1014;--t2:#7A5E64;--gold:#8A6700;--gold-bg:#FFF8E6;
+    --green:#2E7D52;--green-bg:#F2FBF6;--red:#B03030;--red-bg:#FFF0F0;
     --warn-bg:#FFF4DC;--warn-t:#7A5000;--input-bg:#FFFFFF;
+    --grad-t:#FFFFFF;--grad-t2:rgba(255,255,255,0.75);
+    /* Superficies translúcidas (chrome): nav/footer/tarjetas glass/modales.
+       applyTheme las actualiza por paleta; el oscuro las redefine. */
+    --chrome-bg:rgba(255,255,255,0.75);
+    --chrome-bgr:rgba(255,255,255,0.96);
+    --chrome-brd:rgba(255,255,255,0.5);
     /* Gradient & Glassmorphism (updated by applyTheme) */
-    --gradient:linear-gradient(135deg, #B5524A 0%, #D47A6A 50%, #E8A898 100%);
-    --gradient-soft:linear-gradient(135deg, #FAEAE8 0%, #F7F0EC 50%, #E8D0CC 100%);
+    --gradient:linear-gradient(135deg, #A84B60 0%, #B45A6E 50%, #C57F93 100%);
+    --gradient-soft:linear-gradient(135deg, #FAE9ED 0%, #F9F1F3 50%, #EAD0D7 100%);
     --glass:rgba(181, 82, 74, 0.12);
     --glass-strong:rgba(181, 82, 74, 0.25);
     /* Neumorphism */
@@ -1066,10 +1222,10 @@ function GS() { return <style>{`
     border-radius:16px;
   }
   .glass-card{
-    background:rgba(255,255,255,0.7);
+    background:var(--chrome-bg);
     backdrop-filter:var(--glass-blur);
     -webkit-backdrop-filter:var(--glass-blur);
-    border:1px solid rgba(255,255,255,0.5);
+    border:1px solid var(--chrome-brd);
     border-radius:20px;
     box-shadow:var(--shadow-md);
   }
@@ -1117,10 +1273,10 @@ function GS() { return <style>{`
     margin-bottom:14px;
   }
   .card-glass{
-    background:rgba(255,255,255,0.75);
+    background:var(--chrome-bg);
     backdrop-filter:var(--glass-blur);
     -webkit-backdrop-filter:var(--glass-blur);
-    border:1px solid rgba(255,255,255,0.5);
+    border:1px solid var(--chrome-brd);
     border-radius:20px;
     box-shadow:var(--shadow-md);
     padding:20px;
@@ -1146,7 +1302,7 @@ function GS() { return <style>{`
     border-color:var(--primary);
     box-shadow:0 0 0 3px var(--glass), var(--shadow-inner);
   }
-  .inp::placeholder{color:var(--t2);opacity:.6}
+  .inp::placeholder{color:var(--t2)}
   
   /* ── Labels ── */
   .lbl{
@@ -1162,7 +1318,7 @@ function GS() { return <style>{`
   /* ── Buttons ── */
   .btn{
     background:var(--gradient);
-    color:white;
+    color:var(--grad-t);
     border:none;
     border-radius:12px;
     padding:14px 24px;
@@ -1588,7 +1744,7 @@ function GS() { return <style>{`
   
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes pulse{0%,100%{opacity:.7}50%{opacity:1}}
-  @keyframes remindPing{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(181,82,74,.4)}50%{transform:scale(1.03);box-shadow:0 0 0 8px rgba(181,82,74,0)}}
+  @keyframes remindPing{0%,100%{transform:scale(1);box-shadow:0 0 0 0 transparent}50%{transform:scale(1.03);box-shadow:0 0 0 8px var(--glass)}}
   @keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   .slide-in{animation:slideDown .18s ease forwards}
   @keyframes toastUp{from{opacity:0;transform:translate(-50%,18px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -1603,7 +1759,7 @@ function GS() { return <style>{`
   
   /* ── Glass header ── */
   .glass-header{
-    background:rgba(255,255,255,0.85);
+    background:var(--chrome-bgr);
     backdrop-filter:var(--glass-blur);
     -webkit-backdrop-filter:var(--glass-blur);
     border-bottom:1px solid rgba(0,0,0,0.04);
@@ -1703,7 +1859,7 @@ function Dashboard({clients,appts,expenses,services,confirm,deleteAppt,setTab,op
     })()}
 
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
-      <div style={{fontFamily:'Georgia,serif',fontSize:21,fontWeight:600,color:'var(--t)'}}>Bienvenida {'\u2728'}</div>
+      <h1 style={{fontFamily:'Georgia,serif',fontSize:21,fontWeight:600,color:'var(--t)',margin:0}}>Bienvenida {'\u2728'}</h1>
       <div style={{fontSize:11,color:'var(--t2)'}}>{new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'})}</div>
     </div>
 
@@ -1739,34 +1895,34 @@ function Dashboard({clients,appts,expenses,services,confirm,deleteAppt,setTab,op
         <NavIcon type="people" active={false}/>
         <div style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,marginTop:6}}>{clients.length}</div>
         <div style={{fontSize:11,color:'var(--t2)',textTransform:'uppercase',letterSpacing:'.06em',fontWeight:600,marginTop:2}}>Clientes</div>
-        <div style={{fontSize:10,color:'var(--primary)',marginTop:3,fontWeight:600}}>Ver todas {'\u2192'}</div>
+        <div style={{fontSize:11,color:'var(--primary)',marginTop:3,fontWeight:600}}>Ver todas {'\u2192'}</div>
       </div>
       <div className="stat" onClick={()=>setTab('appointments')}>
         <NavIcon type="cal" active={false}/>
         <div style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,marginTop:6}}>{ta.length}</div>
         <div style={{fontSize:11,color:'var(--t2)',textTransform:'uppercase',letterSpacing:'.06em',fontWeight:600,marginTop:2}}>Citas hoy</div>
-        <div style={{fontSize:10,color:'var(--primary)',marginTop:3,fontWeight:600}}>Ver citas {'\u2192'}</div>
+        <div style={{fontSize:11,color:'var(--primary)',marginTop:3,fontWeight:600}}>Ver citas {'\u2192'}</div>
       </div>
     </div>
 
     <div className="card" style={{marginBottom:14,padding:0,overflow:'hidden'}}>
       <div style={{background:netoPos?'linear-gradient(135deg,var(--primary),var(--primary-d))':'linear-gradient(135deg,#B04040,#843030)',padding:'16px 18px',cursor:'pointer'}} onClick={()=>setTab('finances')}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
-          <div style={{fontSize:10,color:'rgba(255,255,255,0.8)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em'}}>
+          <div style={{fontSize:11,color:'var(--grad-t2)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.09em'}}>
             {isMonth?'Balance \u2014 '+new Date(selMonth+'-01T12:00:00').toLocaleDateString('es-CO',{month:'long',year:'numeric'}):'Balance Neto'}
           </div>
-          <span style={{fontSize:10,color:'rgba(255,255,255,0.6)'}}>Ver finanzas {'\u2192'}</span>
+          <span style={{fontSize:11,color:'var(--grad-t2)'}}>Ver finanzas {'\u2192'}</span>
         </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
-          <div style={{fontFamily:'Georgia,serif',fontSize:30,fontWeight:700,color:'white'}}>{fmtM(aNeto)}</div>
+          <div style={{fontFamily:'Georgia,serif',fontSize:30,fontWeight:700,color:'var(--grad-t)'}}>{fmtM(aNeto)}</div>
           {conInit!==null&&(
-            <div style={{fontSize:10,color:'rgba(255,255,255,0.7)',textAlign:'right',lineHeight:1.5,whiteSpace:'nowrap'}}>
+            <div style={{fontSize:11,color:'var(--grad-t2)',textAlign:'right',lineHeight:1.5,minWidth:0,flexShrink:1}}>
               + Saldo inicial {fmtM(openingBalance)}<br/>
-              <b style={{fontSize:12,color:'rgba(255,255,255,0.92)'}}>Con saldo inicial {fmtM(conInit)}</b>
+              <b style={{fontSize:12,color:'var(--grad-t)'}}>Con saldo inicial {fmtM(conInit)}</b>
             </div>
           )}
         </div>
-        <div style={{fontSize:11,color:'rgba(255,255,255,0.65)',marginTop:4}}>
+        <div style={{fontSize:11,color:'var(--grad-t2)',marginTop:4}}>
           Recibido {fmtM(aRevDone)} {'\u2212'} Gastos {fmtM(aExp)}
         </div>
       </div>
@@ -1791,19 +1947,19 @@ function Dashboard({clients,appts,expenses,services,confirm,deleteAppt,setTab,op
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:10,padding:'14px 16px'}}>
         <div style={{textAlign:'center',background:'var(--green-bg)',borderRadius:12,padding:'11px 6px',cursor:'pointer'}} onClick={()=>setTab('income-detail', isMonth?{month:selMonth,origin:'dashboard'}:{origin:'dashboard'})}>
-          <div style={{fontSize:10,color:'var(--green)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Recibido</div>
+          <div style={{fontSize:11,color:'var(--green)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Recibido</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.6vw,14px)',fontWeight:700,color:'var(--green)'}}>{fmtM(aRevDone)}</div>
-          <div style={{fontSize:10,color:'var(--green)',marginTop:2}}>{aDone.length} citas</div>
+          <div style={{fontSize:11,color:'var(--green)',marginTop:2}}>{aDone.length} citas</div>
         </div>
         <div style={{textAlign:'center',background:'var(--gold-bg)',borderRadius:12,padding:'11px 6px',cursor:'pointer'}} onClick={()=>setTab('income-detail', isMonth?{filter:'pending',month:selMonth,origin:'dashboard'}:{filter:'pending',origin:'dashboard'})}>
-          <div style={{fontSize:10,color:'var(--gold)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Pendiente</div>
+          <div style={{fontSize:11,color:'var(--gold)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Pendiente</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.6vw,14px)',fontWeight:700,color:'var(--gold)'}}>{fmtM(aRevPend)}</div>
-          <div style={{fontSize:10,color:'var(--gold)',marginTop:2}}>{aPend.length} {'\u2192'}</div>
+          <div style={{fontSize:11,color:'var(--gold)',marginTop:2}}>{aPend.length} {'\u2192'}</div>
         </div>
         <div style={{textAlign:'center',background:'var(--primary-l)',borderRadius:12,padding:'11px 6px'}}>
-          <div style={{fontSize:10,color:'var(--primary)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Proyectado</div>
+          <div style={{fontSize:11,color:'var(--primary)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Proyectado</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.6vw,14px)',fontWeight:700,color:'var(--primary)'}}>{fmtM(aRevAll)}</div>
-          <div style={{fontSize:10,color:'var(--primary)',marginTop:2}}>{aAll.length} citas</div>
+          <div style={{fontSize:11,color:'var(--primary)',marginTop:2}}>{aAll.length} citas</div>
         </div>
       </div>
 
@@ -1818,7 +1974,7 @@ function Dashboard({clients,appts,expenses,services,confirm,deleteAppt,setTab,op
 
     <div className="card">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-        <span style={{fontWeight:700,fontSize:15}}>{'\uD83C\uDF38'} Citas de Hoy</span>
+        <span style={{fontWeight:700,fontSize:15}}>{BIZ_EMOJI} Citas de Hoy</span>
         <button className="btn" style={{fontSize:12,padding:'7px 14px'}} onClick={()=>setTab('appointments',{newAppt:true,origin:'dashboard'})}>+ Nueva cita</button>
       </div>
       {ta.length===0
@@ -1834,7 +1990,7 @@ function Dashboard({clients,appts,expenses,services,confirm,deleteAppt,setTab,op
                 <div style={{fontSize:12,color:'var(--t2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.serviceNames}</div>
               </div>
               {bool(a.completed)&&<span className="tag-g" style={{flexShrink:0,fontSize:11}}>{'\u2713'}</span>}
-              {apptStatus(a)==='noshow'&&<span style={{flexShrink:0,fontSize:11,display:'inline-block',background:'#FFF0EC',color:'var(--red)',borderRadius:'999px',padding:'4px 10px',fontWeight:600}}>✗ No asistió</span>}
+              {apptStatus(a)==='noshow'&&<span style={{flexShrink:0,fontSize:11,display:'inline-block',background:'var(--red-bg)',color:'var(--red)',borderRadius:'999px',padding:'4px 10px',fontWeight:600}}>✗ No asistió</span>}
               <div style={{fontWeight:700,color:'var(--primary)',fontSize:14,flexShrink:0}}>{fmtM(a.totalPrice||a.servicePrice)}</div>
             </div>
             {/* Acciones explícitas e independientes entre sí. */}
@@ -1890,19 +2046,19 @@ function MonthlyIncomeState({appts,selMonth,setSelMonth,setTab}) {
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginBottom:10}}>
         <div style={{textAlign:'center',background:'var(--green-bg)',borderRadius:12,padding:'12px 8px',cursor:'pointer'}} onClick={()=>setTab('income-detail',{month:selMonth})}>
-          <div style={{fontSize:10,color:'var(--green)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Recibido</div>
+          <div style={{fontSize:11,color:'var(--green)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Recibido</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.8vw,15px)',fontWeight:700,color:'var(--green)'}}>{fmtM(revDone)}</div>
-          <div style={{fontSize:10,color:'var(--green)',marginTop:2}}>{done.length} citas {'\u2713'}</div>
+          <div style={{fontSize:11,color:'var(--green)',marginTop:2}}>{done.length} citas {'\u2713'}</div>
         </div>
         <div style={{textAlign:'center',background:'var(--gold-bg)',borderRadius:12,padding:'12px 8px',cursor:'pointer'}} onClick={()=>setTab('income-detail',{filter:'pending',month:selMonth})}>
-          <div style={{fontSize:10,color:'var(--gold)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Pendiente</div>
+          <div style={{fontSize:11,color:'var(--gold)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Pendiente</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.8vw,15px)',fontWeight:700,color:'var(--gold)'}}>{fmtM(revPend)}</div>
-          <div style={{fontSize:10,color:'var(--gold)',marginTop:2}}>{pend.length} citas {'\u2192'}</div>
+          <div style={{fontSize:11,color:'var(--gold)',marginTop:2}}>{pend.length} citas {'\u2192'}</div>
         </div>
         <div style={{textAlign:'center',background:'var(--primary-l)',borderRadius:12,padding:'12px 8px'}}>
-          <div style={{fontSize:10,color:'var(--primary)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Proyectado</div>
+          <div style={{fontSize:11,color:'var(--primary)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Proyectado</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.8vw,15px)',fontWeight:700,color:'var(--primary)'}}>{fmtM(revTotal)}</div>
-          <div style={{fontSize:10,color:'var(--primary)',marginTop:2}}>{ma.length} citas</div>
+          <div style={{fontSize:11,color:'var(--primary)',marginTop:2}}>{ma.length} citas</div>
         </div>
       </div>
       {revTotal>revDone && (
@@ -1943,7 +2099,7 @@ function MonthlyBalance({appts,expenses,selMonth,setSelMonth,setTab}) {
     : selMonth
 
   return (
-    <div className="card" style={{marginBottom:14,background:'linear-gradient(160deg,#FBF0EE,#FAF5F0)',border:'1.5px solid var(--border)'}}>
+    <div className="card" style={{marginBottom:14,background:'var(--card)',border:'1.5px solid var(--border)'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <span style={{fontWeight:700,fontSize:14,color:'var(--t)'}}>📅 Balance por mes</span>
         <select value={selMonth} onChange={e=>setSelMonth(e.target.value)}
@@ -1953,9 +2109,9 @@ function MonthlyBalance({appts,expenses,selMonth,setSelMonth,setTab}) {
       </div>
 
       {/* Net headline */}
-      <div style={{background:netoPos?'linear-gradient(135deg,var(--green),#3d7a55)':'linear-gradient(135deg,var(--red),#a04040)',borderRadius:12,padding:'12px 16px',marginBottom:12,color:'white',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      <div style={{background:netoPos?'linear-gradient(135deg,var(--green),#3d7a55)':'linear-gradient(135deg,var(--red),#a04040)',borderRadius:12,padding:'12px 16px',marginBottom:12,color:'var(--grad-t)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div>
-          <div style={{fontSize:10,opacity:.8,textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600}}>Neto {monthLabel}</div>
+          <div style={{fontSize:11,opacity:.8,textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600}}>Neto {monthLabel}</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,marginTop:2}}>{fmtM(neto)}</div>
         </div>
         <div style={{fontSize:28,opacity:.85}}>{netoPos?'💚':'📉'}</div>
@@ -1964,19 +2120,19 @@ function MonthlyBalance({appts,expenses,selMonth,setSelMonth,setTab}) {
       {/* 3 pills */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}}>
         <div style={{background:'var(--green-bg)',borderRadius:10,padding:'10px 8px',textAlign:'center',cursor:'pointer'}} onClick={()=>setTab('income-detail',{month:selMonth})}>
-          <div style={{fontSize:10,color:'var(--green)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Recibido</div>
+          <div style={{fontSize:11,color:'var(--green)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Recibido</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.6vw,14px)',fontWeight:700,color:'var(--green)'}}>{fmtM(revDone)}</div>
-          <div style={{fontSize:10,color:'var(--green)',marginTop:1}}>{ma.filter(a=>bool(a.completed)).length} citas</div>
+          <div style={{fontSize:11,color:'var(--green)',marginTop:1}}>{ma.filter(a=>bool(a.completed)).length} citas</div>
         </div>
         <div style={{background:'var(--gold-bg)',borderRadius:10,padding:'10px 8px',textAlign:'center',cursor:'pointer'}} onClick={()=>setTab('income-detail',{filter:'pending',month:selMonth})}>
-          <div style={{fontSize:10,color:'var(--gold)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Pendiente</div>
+          <div style={{fontSize:11,color:'var(--gold)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Pendiente</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.6vw,14px)',fontWeight:700,color:'var(--gold)'}}>{fmtM(revPend)}</div>
-          <div style={{fontSize:10,color:'var(--gold)',marginTop:1}}>{ma.filter(a=>!bool(a.completed)&&!isPastAppt(a)).length} citas</div>
+          <div style={{fontSize:11,color:'var(--gold)',marginTop:1}}>{ma.filter(a=>!bool(a.completed)&&!isPastAppt(a)).length} citas</div>
         </div>
         <div style={{background:'var(--primary-l)',borderRadius:10,padding:'10px 8px',textAlign:'center'}}>
-          <div style={{fontSize:10,color:'var(--primary)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Proyectado</div>
+          <div style={{fontSize:11,color:'var(--primary)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>Proyectado</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.6vw,14px)',fontWeight:700,color:'var(--primary)'}}>{fmtM(revTotal)}</div>
-          <div style={{fontSize:10,color:'var(--primary)',marginTop:1}}>{ma.length} citas</div>
+          <div style={{fontSize:11,color:'var(--primary)',marginTop:1}}>{ma.length} citas</div>
         </div>
       </div>
 
@@ -2136,7 +2292,7 @@ function ApptsTab({clients,services,appts,SA,SC,sync,deleteAppt,confirm,infoModa
 
   return <>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-      <span style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)'}}>Citas</span>
+      <h1 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',margin:0}}>Citas</h1>
       <button className="btn" onClick={()=>setNew(true)}>+ Nueva cita</button>
     </div>
     {payFor && <PayModal appt={payFor.appt} onPick={pickPayment} onCancel={()=>setPayFor(null)}/>}
@@ -2161,7 +2317,7 @@ function ApptsTab({clients,services,appts,SA,SC,sync,deleteAppt,confirm,infoModa
       pageSize={PAST_APPT_PAGE_SIZE} page={pastPage} onPage={setPastPage}/>
     {appts.length===0 && (
       <div className="card" style={{textAlign:'center',padding:30,color:'var(--t2)'}}>
-        No hay citas 🌸<br/><br/>
+        No hay citas {BIZ_EMOJI}<br/><br/>
         <button className="btn" onClick={()=>setNew(true)}>+ Nueva cita</button>
       </div>
     )}
@@ -2316,7 +2472,7 @@ function ApptCard({appt,focused=false,onOpen,onToggle,onEdit,onDelete,onChangePa
   const brdMap = {done:'#B0DDC0', noshow:'#F5C0B0', pending: past?'#E0D8D5':'var(--border)'}
   return (
     <div id={`appt-${appt.id}`} className={focused?'appt-flash':''} style={{background:bgMap[status],borderRadius:12,border:`1.5px solid ${remindNow?'var(--primary)':brdMap[status]}`,padding:14,marginTop:8,boxShadow:remindNow?'0 0 0 3px var(--primary-l)':'none'}}>
-      {remindNow && <div style={{background:'var(--primary)',color:'white',borderRadius:8,padding:'4px 10px',fontSize:11,fontWeight:700,marginBottom:8,display:'inline-block',animation:'remindPing 1.4s ease-in-out infinite'}}>
+      {remindNow && <div style={{background:'var(--primary)',color:'var(--grad-t)',borderRadius:8,padding:'4px 10px',fontSize:11,fontWeight:700,marginBottom:8,display:'inline-block',animation:'remindPing 1.4s ease-in-out infinite'}}>
         ⏰ Recordar ahora · {fmtTime(appt.time)}
       </div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
@@ -2329,7 +2485,7 @@ function ApptCard({appt,focused=false,onOpen,onToggle,onEdit,onDelete,onChangePa
             {status==='noshow' ? <span style={{textDecoration:'line-through',opacity:.6}}>{fmtM(appt.totalPrice||appt.servicePrice)}</span> : fmtM(appt.totalPrice||appt.servicePrice)}
           </div>
           {dom && <div style={{fontSize:11,color:'var(--gold)'}}>🛵 +{fmtM(appt.domicilioPrice)}</div>}
-          <div style={{fontSize:10,color:calOk?'var(--green)':'#ccc',marginTop:1}}>{calOk?'📅 Cal':'📅 —'}</div>
+          <div style={{fontSize:11,color:calOk?'var(--green)':'#ccc',marginTop:1}}>{calOk?'📅 Cal':'📅 —'}</div>
         </div>
       </div>
       <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:10}}>
@@ -2341,7 +2497,7 @@ function ApptCard({appt,focused=false,onOpen,onToggle,onEdit,onDelete,onChangePa
         {status==='done'   && (payMethodOf(appt)
           ? <span className="tag-g" style={{fontSize:11,cursor:onChangePay?'pointer':'default'}} title="Cambiar método de pago" onClick={onChangePay}><PayIcon m={payMethodOf(appt)} h={14}/>{payMethodOf(appt)}</span>
           : <span className="tag-gold" style={{fontSize:11,cursor:onChangePay?'pointer':'default'}} title="Registrar método de pago" onClick={onChangePay}>💳 Sin método de pago · registrar</span>)}
-        {status==='noshow' && <span style={{display:'inline-block',background:'#FFF0EC',color:'var(--red)',borderRadius:20,padding:'2px 10px',fontSize:12,fontWeight:600}}>✗ No asistió</span>}
+        {status==='noshow' && <span style={{display:'inline-block',background:'var(--red-bg)',color:'var(--red)',borderRadius:20,padding:'2px 10px',fontSize:12,fontWeight:600}}>✗ No asistió</span>}
         {status==='pending'&& past && <span className="tag-past" style={{fontSize:11}}>● Pasada</span>}
       </div>
       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -2544,7 +2700,7 @@ function EditAppt({appt,services,appts,SA,priceHistory,onClose}) {
   return <div>
     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
       <button className="btn-sm" onClick={onClose}>← Volver</button>
-      <span style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600}}>Editar Cita</span>
+      <h1 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,margin:0}}>Editar Cita</h1>
     </div>
 
     {/* Client summary */}
@@ -2560,7 +2716,7 @@ function EditAppt({appt,services,appts,SA,priceHistory,onClose}) {
         <button key={s.id} className={`so${svcIds.includes(s.id)?' sel':''}`} onClick={()=>toggleSvc(s.id)}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${svcIds.includes(s.id)?'var(--primary)':'#ccc'}`,background:svcIds.includes(s.id)?'var(--primary)':'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-              {svcIds.includes(s.id)&&<span style={{color:'white',fontSize:11}}>✓</span>}
+              {svcIds.includes(s.id)&&<span style={{color:'var(--grad-t)',fontSize:11}}>✓</span>}
             </div>
             <div><div style={{fontWeight:600,fontSize:14}}>{s.name}</div><div style={{fontSize:11,color:'var(--t2)'}}>⏱ {fmtDuration(svcDuration(s))}</div></div>
           </div>
@@ -2568,8 +2724,8 @@ function EditAppt({appt,services,appts,SA,priceHistory,onClose}) {
             <span style={{fontWeight:700,color:'var(--primary)',fontSize:14}}>{fmtM(getPriceFor(s.id))}</span>
             {originalIds.includes(s.id) && savedPrices[s.id] !== undefined && toN(savedPrices[s.id]) !== toN(s.price) &&
               <div style={{marginTop:2,textAlign:'right'}}>
-                <span style={{fontSize:10,color:'var(--t2)',textDecoration:'line-through'}}>{fmtM(toN(s.price))}</span>
-                <span style={{fontSize:10,color:'var(--t2)',marginLeft:3}}>nuevo</span>
+                <span style={{fontSize:11,color:'var(--t2)',textDecoration:'line-through'}}>{fmtM(toN(s.price))}</span>
+                <span style={{fontSize:11,color:'var(--t2)',marginLeft:3}}>nuevo</span>
               </div>}
           </div>
         </button>
@@ -2586,7 +2742,7 @@ function EditAppt({appt,services,appts,SA,priceHistory,onClose}) {
           .map(r => String(r.name||'').trim())
           .filter(Boolean)
         return deletedNames.length>0 ? (
-          <div style={{background:'#FBF0F3',borderRadius:10,padding:'10px 14px',marginBottom:8,fontSize:13,color:'var(--t2)'}}>
+          <div style={{background:'var(--primary-l)',borderRadius:10,padding:'10px 14px',marginBottom:8,fontSize:13,color:'var(--t2)'}}>
             <span style={{fontWeight:600}}>Servicios eliminados del catálogo:</span> {deletedNames.join(', ')} — solo aparecen en el historial, no se pueden re-seleccionar.
           </div>
         ) : null
@@ -2610,7 +2766,7 @@ function EditAppt({appt,services,appts,SA,priceHistory,onClose}) {
 
       {/* Total preview */}
       {svcIds.length>0 && <div style={{background:'var(--primary-l)',borderRadius:10,padding:10,fontSize:14,marginBottom:14}}>
-        {svcIds.map(id=>{ const s=safeSvcs.find(x=>x.id===id); if(!s)return null; const p=getPriceFor(id); const isOrig=originalIds.includes(id)&&savedPrices[id]!==undefined&&toN(savedPrices[id])!==toN(s.price); return <div key={id} style={{display:'flex',justifyContent:'space-between',marginBottom:2}}><span style={{color:'var(--t2)'}}>{s.name}{isOrig?<span style={{fontSize:10,color:'var(--t2)',marginLeft:4}}>(precio guardado)</span>:''}</span><span style={{fontWeight:600}}>{fmtM(p)}</span></div> })}
+        {svcIds.map(id=>{ const s=safeSvcs.find(x=>x.id===id); if(!s)return null; const p=getPriceFor(id); const isOrig=originalIds.includes(id)&&savedPrices[id]!==undefined&&toN(savedPrices[id])!==toN(s.price); return <div key={id} style={{display:'flex',justifyContent:'space-between',marginBottom:2}}><span style={{color:'var(--t2)'}}>{s.name}{isOrig?<span style={{fontSize:11,color:'var(--t2)',marginLeft:4}}>(precio guardado)</span>:''}</span><span style={{fontWeight:600}}>{fmtM(p)}</span></div> })}
         {dom&&<div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}><span style={{color:'var(--t2)'}}>Domicilio</span><span style={{fontWeight:600}}>{fmtM(domP)}</span></div>}
         <div style={{display:'flex',justifyContent:'space-between',borderTop:'1px solid var(--border)',paddingTop:5,marginTop:4}}><span style={{fontWeight:700}}>Total</span><span style={{fontWeight:700,color:'var(--primary)',fontSize:16}}>{fmtM(grand)}</span></div>
       </div>}
@@ -2634,7 +2790,7 @@ function EditAppt({appt,services,appts,SA,priceHistory,onClose}) {
 
       {result!==null && (
         <div style={{
-          background: result.ok===true ? '#EDF7F0' : 'var(--warn-bg)',
+          background: result.ok===true ? 'var(--green-bg)' : 'var(--warn-bg)',
           border: `1px solid ${result.ok===true ? 'var(--green)' : '#E8C88A'}`,
           borderRadius:10, padding:10, fontSize:13, marginBottom:14,
           lineHeight:1.6,
@@ -2810,7 +2966,7 @@ function NewWizard({clients,services,appts,SA,SC,sync,infoModal,onClose,initialD
   return <div>
     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
       <button className="btn-sm" onClick={onClose}>← Volver</button>
-      <span style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600}}>Nueva Cita</span>
+      <h1 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,margin:0}}>Nueva Cita</h1>
     </div>
     {!done&&!loading&&<Dots/>}
 
@@ -2847,16 +3003,16 @@ function NewWizard({clients,services,appts,SA,SC,sync,infoModal,onClose,initialD
       <div style={{fontSize:13,color:'var(--t2)',marginBottom:14}}>Registra a esta clienta para continuar</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
         <div>
-          <label className="lbl">Nombre (mín. 3 caracteres)</label>
+          <label className="lbl">Nombre</label>
           <input className="inp" placeholder="Nombre completo" value={newName} onChange={e=>setNN(e.target.value)}
-            style={{borderColor:newName&&!nameValid(newName)?'var(--red)':'var(--border)'}}/>
+            style={{fontSize:13,borderColor:newName&&!nameValid(newName)?'var(--red)':'var(--border)'}}/>
           {newName&&!nameValid(newName)&&<div style={{fontSize:11,color:'var(--red)',marginTop:3}}>Mínimo 3 caracteres</div>}
         </div>
         <div>
-          <label className="lbl">Celular (10 dígitos)</label>
+          <label className="lbl">Celular</label>
           <input className="inp" type="tel" placeholder="3001234567" value={newPhone}
             onChange={e=>setNP(e.target.value.replace(/\D/g,'').slice(0,10))}
-            style={{borderColor:newPhone&&!phoneValid(newPhone)?'var(--red)':'var(--border)'}}/>
+            style={{fontSize:13,borderColor:newPhone&&!phoneValid(newPhone)?'var(--red)':'var(--border)'}}/>
           {newPhone&&!phoneValid(newPhone)&&<div style={{fontSize:11,color:'var(--red)',marginTop:3}}>Mínimo 10 dígitos</div>}
         </div>
       </div>
@@ -2868,7 +3024,7 @@ function NewWizard({clients,services,appts,SA,SC,sync,infoModal,onClose,initialD
     {step===3 && <div className="card">
       {/* Client banner */}
       <div style={{background:'var(--primary-l)',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:10}}>
-        <div style={{width:34,height:34,borderRadius:'50%',background:'var(--primary)',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:700,fontSize:15,flexShrink:0}}>
+        <div style={{width:34,height:34,borderRadius:'50%',background:'var(--primary)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--grad-t)',fontWeight:700,fontSize:15,flexShrink:0}}>
           {String(fc?.name||'?').charAt(0).toUpperCase()}
         </div>
         <div>
@@ -2896,7 +3052,7 @@ function NewWizard({clients,services,appts,SA,SC,sync,infoModal,onClose,initialD
         <button key={s.id} className={`so${svcIds.includes(s.id)?' sel':''}`} onClick={()=>toggleSvc(s.id)}>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <div style={{width:20,height:20,borderRadius:4,border:`2px solid ${svcIds.includes(s.id)?'var(--primary)':'#ccc'}`,background:svcIds.includes(s.id)?'var(--primary)':'white',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-              {svcIds.includes(s.id)&&<span style={{color:'white',fontSize:13}}>✓</span>}
+              {svcIds.includes(s.id)&&<span style={{color:'var(--grad-t)',fontSize:13}}>✓</span>}
             </div>
             <div><div style={{fontWeight:600,fontSize:14}}>{s.name}</div><div style={{fontSize:11,color:'var(--t2)'}}>⏱ {fmtDuration(svcDuration(s))}</div></div>
           </div>
@@ -2937,7 +3093,7 @@ function NewWizard({clients,services,appts,SA,SC,sync,infoModal,onClose,initialD
     {step===4 && <div className="card">
       {/* Client banner */}
       <div style={{background:'var(--primary-l)',borderRadius:10,padding:'8px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
-        <div style={{width:28,height:28,borderRadius:'50%',background:'var(--primary)',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:700,fontSize:13,flexShrink:0}}>{String(fc?.name||'?').charAt(0).toUpperCase()}</div>
+        <div style={{width:28,height:28,borderRadius:'50%',background:'var(--primary)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--grad-t)',fontWeight:700,fontSize:13,flexShrink:0}}>{String(fc?.name||'?').charAt(0).toUpperCase()}</div>
         <span style={{fontWeight:700,fontSize:14}}>{fc?.name}</span>
         <span style={{fontSize:12,color:'var(--t2)'}}>· {selSvcs.map(s=>s.name).join(', ')}</span>
       </div>
@@ -2988,7 +3144,7 @@ function NewWizard({clients,services,appts,SA,SC,sync,infoModal,onClose,initialD
     {done&&!loading && <div className="card" style={{textAlign:'center'}}>
       <div style={{fontSize:42,marginBottom:12}}>🎉</div>
       <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,marginBottom:10}}>¡Cita agendada!</div>
-      <div style={{background:calR?.ok?'#EDF7F0':'var(--warn-bg)',borderRadius:10,padding:12,fontSize:13,color:calR?.ok?'var(--green)':'var(--warn-t)',marginBottom:14,textAlign:'left'}}>
+      <div style={{background:calR?.ok?'var(--green-bg)':'var(--warn-bg)',borderRadius:10,padding:12,fontSize:13,color:calR?.ok?'var(--green)':'var(--warn-t)',marginBottom:14,textAlign:'left'}}>
         {calR?.ok?'📅 Evento creado en Google Calendar ✨':`⚠️ Cita guardada. Calendar: ${calR?.error||'error.'}`}
       </div>
       <div style={{background:'var(--primary-l)',borderRadius:12,padding:16,textAlign:'left',marginBottom:14,fontSize:14}}>
@@ -3043,21 +3199,21 @@ function ClientsTab({clients,appts,SC,confirm,infoModal,setTab}) {
   const filt = safe.filter(c=>String(c.name||'').toLowerCase().includes(srch.toLowerCase())||phoneMatch(c.phone, srch))
 
   return <>
-    <div style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',marginBottom:16}}>Clientes</div>
+    <h1 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',margin:'0 0 16px'}}>Clientes</h1>
     <div className="card">
       <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>✨ Agregar cliente</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
         <div>
-          <label className="lbl">Nombre (mín. 3)</label>
+          <label className="lbl">Nombre</label>
           <input className="inp" placeholder="Nombre completo" value={name} onChange={e=>setN(e.target.value)}
-            style={{borderColor:name&&!nameValid(name)?'var(--red)':'var(--border)'}}/>
+            style={{fontSize:13,borderColor:name&&!nameValid(name)?'var(--red)':'var(--border)'}}/>
           {name&&!nameValid(name)&&<div style={{fontSize:11,color:'var(--red)',marginTop:3}}>Mínimo 3 caracteres</div>}
         </div>
         <div>
-          <label className="lbl">Celular (10 dígitos)</label>
+          <label className="lbl">Celular</label>
           <input className="inp" type="tel" placeholder="3001234567" value={phone}
             onChange={e=>setP(e.target.value.replace(/\D/g,'').slice(0,10))}
-            style={{borderColor:phone&&!phoneValid(phone)?'var(--red)':'var(--border)'}}/>
+            style={{fontSize:13,borderColor:phone&&!phoneValid(phone)?'var(--red)':'var(--border)'}}/>
           {phone&&!phoneValid(phone)&&<div style={{fontSize:11,color:'var(--red)',marginTop:3}}>Mínimo 10 dígitos</div>}
         </div>
       </div>
@@ -3137,7 +3293,7 @@ function ServicesTab({services,appts,SS,confirm,infoModal}) {
     })
   }
   return <>
-    <div style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',marginBottom:16}}>Servicios</div>
+    <h1 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',margin:'0 0 16px'}}>Servicios</h1>
     <div className="card">
       <div style={{fontWeight:700,fontSize:15,marginBottom:14}}>✨ Agregar servicio</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
@@ -3176,7 +3332,7 @@ function ServicesTab({services,appts,SS,confirm,infoModal}) {
                 <button className="btn" style={{padding:'6px 12px',fontSize:13}} disabled={Number(eP)<0} onClick={()=>{SS(safe.map(x=>x.id===s.id?{...x,price:Math.max(0,Number(eP)||0),duration:eD}:x));setEI(null)}}>✓</button>
                 <button className="btn-del" onClick={()=>setEI(null)}>✕</button>
               </div>
-              {Number(eP)<0&&<div style={{color:'var(--red)',fontSize:10,whiteSpace:'nowrap'}}>El precio del servicio no puede ser negativo</div>}
+              {Number(eP)<0&&<div style={{color:'var(--red)',fontSize:11,whiteSpace:'nowrap'}}>El precio del servicio no puede ser negativo</div>}
             </div>
             :<div style={{display:'flex',alignItems:'center',gap:6}}>
               <span style={{fontWeight:700,color:'var(--primary)',fontSize:15}}>{fmtM(s.price)}</span>
@@ -3248,7 +3404,7 @@ function FinancesTab({appts,expenses,SE,setTab,confirm}) {
   const saveEdit=()=>{if(Number(editData.amount)<0)return;SE(safe.map(e=>e.id===editId?{...e,...editData,amount:Math.max(0,toN(editData.amount))}:e));setEI(null)}
 
   return <>
-    <div style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',marginBottom:16}}>Finanzas</div>
+    <h1 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',margin:'0 0 16px'}}>Finanzas</h1>
     <div style={{marginBottom:14}}>
       <label className="lbl">Ver mes</label>
       <select className="inp" value={month} onChange={e=>setM(e.target.value)}>
@@ -3259,12 +3415,12 @@ function FinancesTab({appts,expenses,SE,setTab,confirm}) {
       <div style={{background:'var(--green-bg)',borderRadius:14,padding:'14px 10px',textAlign:'center',cursor:'pointer'}} onClick={()=>setTab('income-detail',{month})}>
         <div style={{fontSize:11,color:'var(--green)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}}>Recibido</div>
         <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.8vw,15px)',fontWeight:700,color:'var(--green)'}}>{fmtM(revDone)}</div>
-        <div style={{fontSize:10,color:'var(--green)',marginTop:2}}>Ver →</div>
+        <div style={{fontSize:11,color:'var(--green)',marginTop:2}}>Ver →</div>
       </div>
       <div style={{background:'var(--red-bg)',borderRadius:14,padding:'14px 10px',textAlign:'center',cursor:'pointer'}} onClick={()=>setTab('expense-detail',{month})}>
         <div style={{fontSize:11,color:'var(--red)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}}>Gastos</div>
         <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.8vw,15px)',fontWeight:700,color:'var(--red)'}}>{fmtM(tot)}</div>
-        <div style={{fontSize:10,color:'var(--red)',marginTop:2}}>Ver →</div>
+        <div style={{fontSize:11,color:'var(--red)',marginTop:2}}>Ver →</div>
       </div>
       <div style={{background:revDone-tot>=0?'var(--green-bg)':'var(--red-bg)',borderRadius:14,padding:'14px 10px',textAlign:'center',border:`1px solid ${revDone-tot>=0?'var(--green)':'var(--red)'}`}}>
         <div style={{fontSize:11,color:revDone-tot>=0?'var(--green)':'var(--red)',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}}>Neto</div>
@@ -3287,7 +3443,7 @@ function FinancesTab({appts,expenses,SE,setTab,confirm}) {
         <div style={{fontWeight:700,fontSize:13,color:'var(--t)'}}>Servicios rentables</div>
         <div style={{fontSize:11,color:'var(--t2)',marginTop:3}}>Ver ranking →</div>
       </div>
-      <div className="card" style={{marginBottom:0,cursor:'pointer',textAlign:'center',padding:'16px 12px'}} onClick={()=>setTab('report')}>
+      <div className="card" style={{marginBottom:0,cursor:'pointer',textAlign:'center',padding:'16px 12px',gridColumn:'span 2'}} onClick={()=>setTab('report')}>
         <div style={{fontSize:26,marginBottom:6}}><svg width="26" height="22" viewBox="0 0 26 22" fill="none"><rect x="2" y="2" width="22" height="18" rx="2" stroke="var(--primary)" strokeWidth="2" fill="none"/><path d="M6 8h14M6 12h14M6 16h8" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/></svg></div>
         <div style={{fontWeight:700,fontSize:13,color:'var(--t)'}}>Reporte y Excel</div>
         <div style={{fontSize:11,color:'var(--t2)',marginTop:3}}>Día, mes, rango o año · Excel →</div>
@@ -3333,11 +3489,11 @@ function FinancesTab({appts,expenses,SE,setTab,confirm}) {
               <div key={cat} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 10px',borderRadius:8,background:'var(--bg2)',opacity:isHidden?0.5:1}}>
                 <div style={{display:'flex',alignItems:'center',gap:8}}>
                   <span style={{fontSize:13,fontWeight:600}}>{cat}</span>
-                  {inUse&&<span style={{fontSize:10,background:'var(--primary-l)',color:'var(--primary)',borderRadius:10,padding:'1px 7px',fontWeight:600}}>{safe.filter(e=>e.category===cat).length} gasto{safe.filter(e=>e.category===cat).length!==1?'s':''}</span>}
+                  {inUse&&<span style={{fontSize:11,background:'var(--primary-l)',color:'var(--primary)',borderRadius:10,padding:'1px 7px',fontWeight:600}}>{safe.filter(e=>e.category===cat).length} gasto{safe.filter(e=>e.category===cat).length!==1?'s':''}</span>}
                 </div>
                 {!inUse
                   ? isHidden
-                    ? <button onClick={()=>showCategory(cat)} style={{border:'1px solid var(--border)',background:'white',borderRadius:6,padding:'3px 10px',fontSize:11,cursor:'pointer',color:'var(--t2)',fontFamily:'inherit'}}>Restaurar</button>
+                    ? <button onClick={()=>showCategory(cat)} style={{border:'1px solid var(--border)',background:'var(--surface)',borderRadius:6,padding:'3px 10px',fontSize:11,cursor:'pointer',color:'var(--t2)',fontFamily:'inherit'}}>Restaurar</button>
                     : <button onClick={()=>hideCategory(cat)} style={{border:'1px solid var(--red)',background:'var(--red-bg)',borderRadius:6,padding:'3px 10px',fontSize:11,cursor:'pointer',color:'var(--red)',fontFamily:'inherit'}}>Eliminar</button>
                   : <span style={{fontSize:11,color:'var(--t2)'}}>En uso</span>
                 }
@@ -3431,11 +3587,11 @@ function ClientHistory({appts,services,setTab,tabExtra}) {
     <div>
       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
         <button className="btn-sm" onClick={()=>setTab('clients')}>{'←'} Volver</button>
-        <span style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600}}>Historial de cliente</span>
+        <h1 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,margin:0}}>Historial de cliente</h1>
       </div>
 
       {/* Client card */}
-      <div style={{background:'linear-gradient(135deg,var(--primary),var(--primary-d))',borderRadius:16,padding:'18px 20px',marginBottom:14,color:'white',display:'flex',alignItems:'center',gap:14}}>
+      <div style={{background:'linear-gradient(135deg,var(--primary),var(--primary-d))',borderRadius:16,padding:'18px 20px',marginBottom:14,color:'var(--grad-t)',display:'flex',alignItems:'center',gap:14}}>
         <div style={{width:52,height:52,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Georgia,serif',fontSize:24,fontWeight:700,flexShrink:0}}>
           {String(client.name||'?').charAt(0).toUpperCase()}
         </div>
@@ -3460,13 +3616,13 @@ function ClientHistory({appts,services,setTab,tabExtra}) {
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8,marginBottom:14}}>
         {[
           [cAppts.length,'Citas','var(--primary)','var(--primary-l)'],
-          [done.length,'Completadas','var(--green)','#EDF7F0'],
+          [done.length,'Completadas','var(--green)','var(--green-bg)'],
           [noshow.length,'No asistió','var(--red)','#FFF4F0'],
           [pend.length,'Pendientes','var(--gold)','#FFF8E6'],
         ].map(([v,l,col,bg])=>(
           <div key={l} style={{background:bg,borderRadius:12,padding:'10px 6px',textAlign:'center'}}>
             <div style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:700,color:col}}>{v}</div>
-            <div style={{fontSize:10,color:col,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginTop:2}}>{l}</div>
+            <div style={{fontSize:11,color:col,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginTop:2}}>{l}</div>
           </div>
         ))}
       </div>
@@ -3507,12 +3663,12 @@ function ClientHistory({appts,services,setTab,tabExtra}) {
           ?<div style={{textAlign:'center',padding:20,color:'var(--t2)',fontSize:14}}>Sin citas registradas</div>
           :apptShown.map(a=>{
             const st = a.completed==='noshow'?'noshow':bool(a.completed)?'done':'pending'
-            const stCfg = {done:{bg:'#EDF7F0',col:'var(--green)',lbl:'✓ Completada'},noshow:{bg:'#FFF4F0',col:'var(--red)',lbl:'✗ No asistió'},pending:{bg:'var(--primary-l)',col:'var(--primary)',lbl:'Pendiente'}}[st]
+            const stCfg = {done:{bg:'var(--green-bg)',col:'var(--green)',lbl:'✓ Completada'},noshow:{bg:'#FFF4F0',col:'var(--red)',lbl:'✗ No asistió'},pending:{bg:'var(--primary-l)',col:'var(--primary)',lbl:'Pendiente'}}[st]
             return (
               <div key={a.id} style={{display:'flex',alignItems:'center',gap:10,padding:'11px 0',borderBottom:'1px solid var(--border)'}}>
                 <div style={{textAlign:'center',flexShrink:0}}>
                   <div style={{fontWeight:700,fontSize:12,color:'var(--primary)'}}>{fmtTime(a.time)}</div>
-                  <div style={{fontSize:10,color:'var(--t2)',marginTop:1}}>{fmtDate(a.date)}</div>
+                  <div style={{fontSize:11,color:'var(--t2)',marginTop:1}}>{fmtDate(a.date)}</div>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.serviceNames}</div>
@@ -3520,7 +3676,7 @@ function ClientHistory({appts,services,setTab,tabExtra}) {
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
                   <div style={{fontSize:13,fontWeight:700,color:stCfg.col,textDecoration:st==='noshow'?'line-through':''}}>{fmtM(a.totalPrice||a.servicePrice)}</div>
-                  <div style={{background:stCfg.bg,color:stCfg.col,borderRadius:20,padding:'1px 8px',fontSize:10,fontWeight:700,marginTop:2,display:'flex',alignItems:'center'}}>{stCfg.lbl}{st==='done'&&payMethodOf(a)&&<> · <PayIcon m={payMethodOf(a)} h={12}/>{payMethodOf(a)}</>}</div>
+                  <div style={{background:stCfg.bg,color:stCfg.col,borderRadius:20,padding:'1px 8px',fontSize:11,fontWeight:700,marginTop:2,display:'flex',alignItems:'center'}}>{stCfg.lbl}{st==='done'&&payMethodOf(a)&&<> · <PayIcon m={payMethodOf(a)} h={12}/>{payMethodOf(a)}</>}</div>
                 </div>
               </div>
             )
@@ -3578,7 +3734,7 @@ function MonthComparison({appts,expenses,setTab}) {
       <div style={{marginBottom:16}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           <span style={{fontSize:12,fontWeight:600,color:'var(--t)'}}>{label}</span>
-          {d && <span style={{fontSize:11,fontWeight:700,color:d.up?'var(--green)':'var(--red)',background:d.up?'#EDF7F0':'#FFF0F0',borderRadius:20,padding:'2px 8px'}}>
+          {d && <span style={{fontSize:11,fontWeight:700,color:d.up?'var(--green)':'var(--red)',background:d.up?'var(--green-bg)':'var(--red-bg)',borderRadius:20,padding:'2px 8px'}}>
             {d.up?'▲':'▼'} {Math.abs(d.pct)}%
           </span>}
         </div>
@@ -3608,7 +3764,7 @@ function MonthComparison({appts,expenses,setTab}) {
     <div>
       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
         <button className="btn-sm" onClick={()=>setTab('finances')}>{'←'} Volver</button>
-        <span style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600}}>Comparar meses</span>
+        <h1 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,margin:0}}>Comparar meses</h1>
       </div>
 
       {/* Month selectors */}
@@ -3635,10 +3791,10 @@ function MonthComparison({appts,expenses,setTab}) {
 
       <div className="card">
         <Bar label="Ingresos recibidos" valA={dA.recv}  valB={dB.recv}  colorA="var(--primary)" colorB="var(--gold)"/>
-        <Bar label="Gastos"             valA={dA.exp}   valB={dB.exp}   colorA="var(--red)"    colorB="#C49A1A"/>
+        <Bar label="Gastos"             valA={dA.exp}   valB={dB.exp}   colorA="var(--red)"    colorB="var(--gold)"/>
         <Bar label="Balance neto"       valA={Math.max(dA.neto,0)} valB={Math.max(dB.neto,0)} colorA="var(--green)" colorB="#3A8A50"/>
         <Bar label="Citas totales" valA={dA.citas} valB={dB.citas} colorA="var(--primary)" colorB="var(--gold)" fmt={pxFmt}/>
-        <Bar label="No asistió"    valA={dA.noShow} valB={dB.noShow} colorA="var(--red)" colorB="#C49A1A" fmt={pxFmt}/>
+        <Bar label="No asistió"    valA={dA.noShow} valB={dB.noShow} colorA="var(--red)" colorB="var(--gold)" fmt={pxFmt}/>
       </div>
 
       {/* Net summary cards — explicit, no .map() to avoid key collision */}
@@ -3648,7 +3804,7 @@ function MonthComparison({appts,expenses,setTab}) {
           {key:'cardB',m:mB,d:dB,col:'var(--gold)'},
         ].map(({key,m,d,col})=>(
           <div key={key} style={{background:'var(--surface)',borderRadius:14,border:`2px solid ${col}`,padding:'14px 12px'}}>
-            <div style={{fontSize:10,color:col,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{monthLabel(m)}</div>
+            <div style={{fontSize:11,color:col,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{monthLabel(m)}</div>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:'1px solid var(--border)'}}><span style={{color:'var(--t2)'}}>Recibido</span><span style={{fontWeight:700,color:'var(--green)'}}>{fmtM(d.recv)}</span></div>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:'1px solid var(--border)'}}><span style={{color:'var(--t2)'}}>Gastos</span><span style={{fontWeight:700,color:'var(--red)'}}>{fmtM(d.exp)}</span></div>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'4px 0',borderBottom:'1px solid var(--border)'}}><span style={{color:'var(--t2)'}}>Citas</span><span style={{fontWeight:700,color:'var(--t)'}}>{d.citas}</span></div>
@@ -3780,7 +3936,7 @@ function TopServices({appts,services,priceHistory,setTab}) {
     <div>
       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
         <button className="btn-sm" onClick={()=>setTab('finances')}>{'←'} Volver</button>
-        <span style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600}}>Servicios rentables</span>
+        <h1 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,margin:0}}>Servicios rentables</h1>
       </div>
 
       {/* Period filter */}
@@ -3794,9 +3950,9 @@ function TopServices({appts,services,priceHistory,setTab}) {
       </div>
 
       {/* Total summary */}
-      <div style={{background:'linear-gradient(135deg,var(--primary),var(--primary-d))',borderRadius:14,padding:'14px 18px',marginBottom:18,color:'white',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      <div style={{background:'linear-gradient(135deg,var(--primary),var(--primary-d))',borderRadius:14,padding:'14px 18px',marginBottom:18,color:'var(--grad-t)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div>
-          <div style={{fontSize:10,opacity:.8,textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600,marginBottom:4}}>Total generado</div>
+          <div style={{fontSize:11,opacity:.8,textTransform:'uppercase',letterSpacing:'.08em',fontWeight:600,marginBottom:4}}>Total generado</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:24,fontWeight:700}}>{fmtM(totalRev)}</div>
           <div style={{fontSize:11,opacity:.7,marginTop:2}}>{completedAppts.length} citas completadas · {byRevenue.length} servicios</div>
         </div>
@@ -3830,7 +3986,7 @@ function TopServices({appts,services,priceHistory,setTab}) {
    código: sale de la variable de entorno VITE_ADMIN_WHATSAPP.
 ══════════════════════════════════════════════════════════════ */
 
-function ReportTab({appts,expenses,services,setTab}) {
+function ReportTab({appts,expenses,services,setTab,infoModal}) {
   const safeA = Array.isArray(appts)?appts:[]
   const safeE = Array.isArray(expenses)?expenses:[]
 
@@ -3964,13 +4120,14 @@ function ReportTab({appts,expenses,services,setTab}) {
   const topByDemand = topServicesByDemand(apptsInPeriod, services)
 
   // ─── Exportar a Excel (.xlsx) ──────────────────────────────────
-  const exportExcel = async () => {
+  // El libro lo construye buildReportWorkbook (fuente única del
+  // formato: la misma que usa el respaldo previo al reset). Compartido
+  // por el botón de descarga y por «Enviar por correo» (adjunto).
+  const buildReportBook = async () => {
     // Sin filas exportables no hay nada que generar (comportamiento
     // histórico: no se abre ningún archivo). Evita además rangos
     // invertidos como SUM(F2:F1) en la hoja Movimientos.
-    if (!movsRanges(ledger.rows.length)) return
-    // El libro lo construye buildReportWorkbook (fuente única del
-    // formato: la misma que usa el respaldo previo al reset).
+    if (!movsRanges(ledger.rows.length)) return null
     const detailSet = new Map()
     apptsInPeriod.forEach(a => detailSet.set(a.id, a))
     createdInPeriod.forEach(a => { if (!detailSet.has(a.id)) detailSet.set(a.id, a) })
@@ -3978,7 +4135,13 @@ function ReportTab({appts,expenses,services,setTab}) {
       M, label: periodLabel(), detailAppts: Array.from(detailSet.values()),
     })
     const name = `reporte_${mode==='day'?day:mode==='month'?month:mode==='year'?year:`${from}_${to}`}.xlsx`
-    XLSX.writeFile(wb, name)
+    return { XLSX, wb, name }
+  }
+
+  const exportExcel = async () => {
+    const book = await buildReportBook()
+    if (!book) return
+    book.XLSX.writeFile(book.wb, book.name)
   }
 
   // ─── Enviar por WhatsApp al admin ─────────────────────────────
@@ -4004,6 +4167,63 @@ function ReportTab({appts,expenses,services,setTab}) {
     openWhatsApp(p, msg)
   }
 
+  // ─── Enviar por correo 📧 ─────────────────────────────────────
+  // El MISMO texto del WhatsApp (reportLines) va al correo que la
+  // operadora escriba; el backend añade SIEMPRE una copia a
+  // SB_REPORT_EMAIL (o SB_AUTHORIZED_EMAIL) sin preguntar. El correo
+  // es el único canal que sale a terceros: la validación vive en el
+  // backend (un solo destinatario, tope de 20 000 caracteres, asunto
+  // fijo) y aquí solo se pre-valida para dar feedback rápido.
+  const [emailModal, setEmailModal] = useState(false)
+  const [emailAddr,  setEmailAddr]  = useState('')
+  const [emailErr,   setEmailErr]   = useState('')
+  const [emailSending, setEmailSending] = useState(false)
+  // Misma exigencia que Gmail: dominio con punto (un «a@b» pasa el
+  // filtro suelto y Gmail contesta «Invalid To header»).
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+  const sendEmailReport = async () => {
+    // ⚠️ Se llama `dest` y NO `to`: un `const to` aquí OCULTABA el
+    // estado `to` (la fecha «Hasta») del componente y el período del
+    // modo RANGO se iba con el correo como fecha final — bug real del
+    // 24/10: día, mes y año funcionaban y solo el rango fallaba.
+    const dest = emailAddr.trim()
+    if (!EMAIL_RE.test(dest) || /[,;]/.test(dest)) {
+      setEmailErr('Escribe un correo válido (ej: nombre@correo.com).')
+      return
+    }
+    setEmailSending(true); setEmailErr('')
+    try {
+      // Solo viaja el PERÍODO que se está viendo: el backend construye
+      // el correo con la MISMA maquinaria de los reportes automáticos
+      // (_sendReportTo: emojis via String.fromCharCode + entidades hex
+      // — nunca cruzan la red) y arma el Excel adjunto desde la hoja.
+      const period = mode==='day'   ? { type:'day',   day }
+                   : mode==='month' ? { type:'month', ym: month }
+                   : mode==='year'  ? { type:'year',  y: year }
+                   :                  { type:'range', from, to }
+      const r = await saveData({ action:'sendReportEmailNow', to: dest, period })
+      setEmailSending(false)
+      if (r && r.ok) {
+        setEmailModal(false); setEmailAddr('')
+        infoModal(
+          `El informe se envió a: ${r.sentTo}` +
+          (r.cc
+            ? '\n\ny una copia a tu correo electrónico.'
+            : '\n\n⚠️ La copia a tu correo no se pudo enviar: falta configurar el correo de reportes (SB_REPORT_EMAIL). Avísale a quien te instaló la app.') +
+          (r.attached
+            ? '\n\n📎 El correo incluye el Excel del período.'
+            : '\n\n⚠️ El Excel no se pudo adjuntar; el correo salió solo con el resumen.'),
+        )
+      } else {
+        setEmailErr((r && r.error) || 'No se pudo enviar el correo. Inténtalo de nuevo.')
+      }
+    } catch(e) {
+      setEmailSending(false)
+      setEmailErr(e.message)
+    }
+  }
+
   // Estilos reutilizables para los chips de modo
   const chipStyle = active => ({
     flex:1,
@@ -4019,7 +4239,7 @@ function ReportTab({appts,expenses,services,setTab}) {
     <div>
       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
         <button className="btn-sm" onClick={()=>setTab('finances')}>← Volver</button>
-        <span style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600}}>📊 Reporte</span>
+        <h1 style={{fontFamily:'Georgia,serif',fontSize:20,fontWeight:600,margin:0}}>📊 Reporte</h1>
       </div>
 
       {/* Modo de filtrado — 4 chips: día / mes / rango / año */}
@@ -4087,7 +4307,7 @@ function ReportTab({appts,expenses,services,setTab}) {
       {/* ══ Resumen financiero ══ */}
       <div className="rep-sec">💰 Resumen financiero</div>
       {/* Total ingresos: contexto del neto (servicios + domicilios ya separados) */}
-      <div style={{background:'var(--gradient)',borderRadius:14,padding:'14px 18px',marginBottom:8,color:'white'}}>
+      <div style={{background:'var(--gradient)',borderRadius:14,padding:'14px 18px',marginBottom:8,color:'var(--grad-t)'}}>
         <div style={{fontSize:11,opacity:.85,textTransform:'uppercase',letterSpacing:'.05em',fontWeight:600,marginBottom:4}}>Total ingresos (servicios + domicilios)</div>
         <div style={{fontFamily:'Georgia,serif',fontSize:28,fontWeight:700}}>{fmtM(revenue)}</div>
         <div style={{fontSize:12,opacity:.9,marginTop:6}}>Servicios {fmtM(ledger.totalService)} + 🛵 Domicilios {fmtM(ledger.totalDelivery)}</div>
@@ -4156,7 +4376,7 @@ function ReportTab({appts,expenses,services,setTab}) {
               </div>
               <div style={{flexShrink:0,textAlign:'right'}}>
                 <div style={{fontWeight:700,color:r.kind==='in'?'var(--green)':'var(--red)'}}>{r.kind==='in'?'+':'−'}{fmtM(r.amount)}</div>
-                {r.kind==='in'&&r.payMethod&&<div style={{fontSize:10,color:'var(--t2)',marginTop:2,display:'flex',alignItems:'center',justifyContent:'flex-end'}}><PayIcon m={r.payMethod} h={11}/>{r.payMethod}</div>}
+                {r.kind==='in'&&r.payMethod&&<div style={{fontSize:11,color:'var(--t2)',marginTop:2,display:'flex',alignItems:'center',justifyContent:'flex-end'}}><PayIcon m={r.payMethod} h={11}/>{r.payMethod}</div>}
               </div>
             </div>
           ))}
@@ -4190,8 +4410,40 @@ function ReportTab({appts,expenses,services,setTab}) {
           style={{padding:'14px 12px'}}>
           💬 WhatsApp admin
         </button>
+        {/* Enviar por correo: mismo reporte, al correo que ella escriba,
+            con copia automática al correo de reportes del backend. Ancho
+            completo para que quepa cómodo en el celular. */}
+        <button className="btn-o" onClick={()=>{setEmailModal(true); setEmailErr('')}} disabled={!hayQueReportar}
+          title={!hayQueReportar ? 'No hay citas ni movimientos en este período' : ''}
+          style={{padding:'14px 12px', gridColumn:'span 2'}}>
+          📧 Enviar por correo
+        </button>
       </div>
       {ledger.rows.length===0 && <div style={{textAlign:'center',fontSize:12,color:'var(--t2)',marginBottom:14}}>No hay movimientos en este período para exportar.</div>}
+
+      {/* Modal «Enviar por correo»: pide UN correo válido; el envío (y su
+          copia) lo hace el backend con sus propios rieles de seguridad. */}
+      {emailModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',zIndex:999,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'var(--glass-blur-sm)',WebkitBackdropFilter:'var(--glass-blur-sm)'}}>
+          <div style={{background:'var(--chrome-bgr)',backdropFilter:'var(--glass-blur)',WebkitBackdropFilter:'var(--glass-blur)',borderRadius:24,padding:28,maxWidth:360,width:'100%',maxHeight:'calc(100dvh - 40px)',overflowY:'auto',textAlign:'center',boxShadow:'var(--shadow-xl)',border:'1px solid var(--chrome-brd)'}}>
+            <div style={{fontSize:32,marginBottom:10}}>📧</div>
+            <div style={{fontSize:15,fontWeight:700,color:'var(--t)',marginBottom:12}}>Enviar el reporte por correo</div>
+            <div style={{fontSize:12,color:'var(--t2)',marginBottom:14,lineHeight:1.5}}>
+              Escribe el correo de quien debe recibirlo. Siempre se envía una copia a tu correo electrónico, y el correo llega con el <strong>Excel del período</strong> adjunto.
+            </div>
+            <input className="inp" type="email" inputMode="email" placeholder="nombre@correo.com" value={emailAddr}
+              onChange={e=>{setEmailAddr(e.target.value); setEmailErr('')}}
+              onKeyDown={e=>{ if(e.key==='Enter' && !emailSending) sendEmailReport() }}
+              aria-label="Correo de destino del reporte"
+              style={{marginBottom: emailErr?6:16, textAlign:'left'}}/>
+            {emailErr && <div style={{fontSize:12,color:'var(--red)',marginBottom:12,fontWeight:600,lineHeight:1.4}}>{emailErr}</div>}
+            <div style={{display:'flex',gap:10}}>
+              <button className="btn-o" style={{flex:1}} onClick={()=>{setEmailModal(false); setEmailErr('')}} disabled={emailSending}>Cancelar</button>
+              <button className="btn" style={{flex:1}} onClick={sendEmailReport} disabled={emailSending}>{emailSending?'Enviando…':'Enviar'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -4257,14 +4509,14 @@ function IncomeDetail({appts,setTab,tabExtra}) {
 
     <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:7,marginBottom:14}}>
       {[['all','Todo',fmtM(revTotal),ma.length,'var(--primary)','var(--primary-l)'],
-        ['completed','Recibido',fmtM(revDone),done.length,'var(--green)','#EDF7F0'],
+        ['completed','Recibido',fmtM(revDone),done.length,'var(--green)','var(--green-bg)'],
         ['pending','Pendiente',fmtM(revPend),pend.length,'var(--gold)','#FFF8E6'],
         ['noshow','No asistió',fmtM(noshow.reduce((s,a)=>s+toN(a.totalPrice||a.servicePrice||0),0)),noshow.length,'var(--red)','#FFF4F0']
       ].map(([v,l,val,cnt,col,bg])=>(
         <div key={v} onClick={()=>setF(v)} style={{background:filter===v?col:bg,borderRadius:12,padding:'12px 8px',textAlign:'center',cursor:'pointer',border:`2px solid ${filter===v?col:'transparent'}`,transition:'all .15s'}}>
           <div style={{fontSize:11,color:filter===v?'white':col,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>{l}</div>
           <div style={{fontFamily:'Georgia,serif',fontSize:'clamp(12px,3.6vw,14px)',fontWeight:700,color:filter===v?'white':col}}>{val}</div>
-          <div style={{fontSize:10,color:filter===v?'rgba(255,255,255,0.8)':col,marginTop:2}}>{cnt} citas</div>
+          <div style={{fontSize:11,color:filter===v?'var(--grad-t2)':col,marginTop:2}}>{cnt} citas</div>
         </div>
       ))}
     </div>
@@ -4303,7 +4555,7 @@ function IncomeDetail({appts,setTab,tabExtra}) {
             </div>
             <div style={{flexShrink:0,textAlign:'right'}}>
               <div style={{fontWeight:700,color:bool(a.completed)?'var(--green)':'var(--gold)',fontSize:13}}>{fmtM(a.totalPrice||a.servicePrice)}</div>
-              <div style={{fontSize:10,color:bool(a.completed)?'var(--green)':'var(--gold)'}}>{bool(a.completed)?(<>✓ Recibido{payMethodOf(a)&&<> · <PayIcon m={payMethodOf(a)} h={12}/>{payMethodOf(a)}</>}</>):'Pendiente'}</div>
+              <div style={{fontSize:11,color:bool(a.completed)?'var(--green)':'var(--gold)'}}>{bool(a.completed)?(<>✓ Recibido{payMethodOf(a)&&<> · <PayIcon m={payMethodOf(a)} h={12}/>{payMethodOf(a)}</>}</>):'Pendiente'}</div>
             </div>
           </div>)}
           {/* Números en círculo: solo si el día tiene más de 5 citas. */}
@@ -4584,7 +4836,7 @@ function SettingsTab({clients, appts, expenses, resetAll, requestResetCode, them
         <div style={{display:'flex',gap:10}}>
           <button className="btn-o" style={{flex:1}} onClick={()=>setStep(0)}>Cancelar</button>
           <button onClick={()=>setStep(2)}
-            style={{flex:1,background:'linear-gradient(135deg, #B03030 0%, #D04040 100%)',color:'white',border:'none',borderRadius:10,padding:'12px 22px',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:'inherit',boxShadow:'var(--shadow-sm)'}}>
+            style={{flex:1,background:'linear-gradient(135deg, #B03030 0%, #D04040 100%)',color:'var(--grad-t)',border:'none',borderRadius:10,padding:'12px 22px',fontWeight:700,fontSize:15,cursor:'pointer',fontFamily:'inherit',boxShadow:'var(--shadow-sm)'}}>
             Sí, continuar →
           </button>
         </div>
@@ -4728,7 +4980,7 @@ function SettingsTab({clients, appts, expenses, resetAll, requestResetCode, them
           </span>
         </div>
       )}
-      <div style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',marginBottom:20}}>⚙️ Ajustes</div>
+      <h1 style={{fontFamily:'Georgia,serif',fontSize:22,fontWeight:600,color:'var(--t)',margin:'0 0 20px'}}>⚙️ Ajustes</h1>
 
       {/* ── Paleta ── */}
       <div className="card-glass" style={{marginBottom:14}}>
@@ -4738,10 +4990,10 @@ function SettingsTab({clients, appts, expenses, resetAll, requestResetCode, them
             const sel = themePalette===pal.id
             return (
               <button key={pal.id} onClick={()=>setThemePalette(pal.id)}
-                style={{background:sel?pal.gradient:'var(--neo-light)',border:`2px solid ${sel?pal.primary:'var(--border)'}`,borderRadius:16,padding:'16px 8px',cursor:'pointer',fontFamily:'inherit',transition:'all .2s',display:'flex',flexDirection:'column',alignItems:'center',gap:6,boxShadow:sel?'var(--shadow-md)':'var(--shadow-sm)',color:sel?'white':'var(--t)'}}>
+                style={{background:sel?pal.gradient:'var(--neo-light)',border:`2px solid ${sel?pal.primary:'var(--border)'}`,borderRadius:16,padding:'16px 8px',cursor:'pointer',fontFamily:'inherit',transition:'all .2s',display:'flex',flexDirection:'column',alignItems:'center',gap:6,boxShadow:sel?'var(--shadow-md)':'var(--shadow-sm)',color:sel?'var(--grad-t)':'var(--t)'}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:pal.gradient,boxShadow:sel?`0 0 0 3px var(--surface), 0 0 0 5px ${pal.primary}`:'0 4px 12px rgba(0,0,0,0.15)',transition:'all .2s'}}/>
-                <span style={{fontSize:12,fontWeight:700,color:sel?'white':'var(--t)'}}>{pal.emoji} {pal.name}</span>
-                {sel && <span style={{fontSize:9,color:sel?'rgba(255,255,255,0.85)':'var(--t2)',letterSpacing:'.05em'}}>ACTIVO</span>}
+                <span style={{fontSize:12,fontWeight:700,color:sel?'var(--grad-t)':'var(--t)'}}>{pal.emoji} {pal.name}</span>
+                {sel && <span style={{fontSize:11,color:sel?'rgba(255,255,255,0.85)':'var(--t2)',letterSpacing:'.05em'}}>ACTIVO</span>}
               </button>
             )
           })}
@@ -4752,7 +5004,7 @@ function SettingsTab({clients, appts, expenses, resetAll, requestResetCode, them
       <div className="card-glass" style={{marginBottom:14}}>
         <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>💰 Saldo inicial</div>
         <div style={{fontSize:12,color:'var(--t2)',lineHeight:1.5,marginBottom:12}}>
-          El dinero con el que abriste el negocio. El Panel lo muestra <strong>aparte</strong>, a la derecha del Balance Neto (vista General), nunca mezclado. No puede ser negativo. Se guarda en <strong>Google Sheets</strong> (hoja «Config»): al cambiarlo aquí se actualiza en todos tus dispositivos, y también puedes editar la celda directo en la hoja.
+          Dinero con el que abriste el negocio. El Panel lo muestra <strong>aparte</strong> del Balance Neto, nunca mezclado. Se guarda y se actualiza en todos tus dispositivos.
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
           <span style={{fontSize:18,fontWeight:700,color:'var(--t2)'}}>$</span>
@@ -4923,7 +5175,7 @@ function ExpenseDetail({expenses,SE,setTab,tabExtra,confirm}) {
     <select className="inp" value={month} onChange={e=>setM(e.target.value)} style={{marginBottom:14}}>
       {months.map(m=><option key={m} value={m}>{new Date(m+'-01T12:00:00').toLocaleDateString('es-CO',{month:'long',year:'numeric'})}</option>)}
     </select>
-    <div style={{background:'linear-gradient(135deg,var(--primary),var(--primary-d))',borderRadius:14,padding:'16px 18px',marginBottom:14,color:'white',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+    <div style={{background:'linear-gradient(135deg,var(--primary),var(--primary-d))',borderRadius:14,padding:'16px 18px',marginBottom:14,color:'var(--grad-t)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
       <div><div style={{fontSize:11,opacity:.8,textTransform:'uppercase',letterSpacing:'.07em',fontWeight:600}}>Total del mes</div><div style={{fontFamily:'Georgia,serif',fontSize:26,fontWeight:700,marginTop:3}}>{fmtM(tot)}</div></div>
       <div style={{fontSize:32}}>📊</div>
     </div>
@@ -5173,11 +5425,11 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
           <span style={{ fontWeight: 700, fontSize: 11, color: col }}>{fmtTime(a.time)}</span>
-          {done && <span style={{ fontSize: 9, fontWeight: 700, color: col }}>✓</span>}
-          {noshow && <span style={{ fontSize: 9, fontWeight: 700, color: col }}>✗</span>}
+          {done && <span style={{ fontSize: 11, fontWeight: 700, color: col }}>✓</span>}
+          {noshow && <span style={{ fontSize: 11, fontWeight: 700, color: col }}>✗</span>}
         </div>
         <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--t)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.clientName}</div>
-        <div style={{ fontSize: 10, color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.serviceNames}</div>
+        <div style={{ fontSize: 11, color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.serviceNames}</div>
       </div>
     )
   }
@@ -5203,14 +5455,14 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
             textAlign: 'center', minWidth: 58, flexShrink: 0,
           }}>
             <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: 13 }}>{fmtTime(a.time)}</div>
-            {bool(a.domicilio) && <div style={{ fontSize: 9, color: 'var(--primary)', marginTop: 2, fontWeight: 600 }}>🛵 Dom</div>}
+            {bool(a.domicilio) && <div style={{ fontSize: 11, color: 'var(--primary)', marginTop: 2, fontWeight: 600 }}>🛵 Dom</div>}
           </div>
 
           {/* Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--t)' }}>{a.clientName}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: status.color, background: status.bg, borderRadius: 6, padding: '2px 7px', display: 'inline-flex', alignItems: 'center' }}>{status.label}{done && payMethodOf(a) && <> · <PayIcon m={payMethodOf(a)} h={12}/>{payMethodOf(a)}</>}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: status.color, background: status.bg, borderRadius: 6, padding: '2px 7px', display: 'inline-flex', alignItems: 'center' }}>{status.label}{done && payMethodOf(a) && <> · <PayIcon m={payMethodOf(a)} h={12}/>{payMethodOf(a)}</>}</span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.serviceNames}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', marginTop: 5 }}>{fmtM(a.totalPrice || a.servicePrice)}</div>
@@ -5218,7 +5470,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10, flexWrap: 'wrap' }}>
           {/* Detalle: disponible para cualquier cita y no escribe nada.
               El contenedor de la tarjeta no tiene onClick, así que el clic
               no se propaga a ninguna acción padre. */}
@@ -5226,6 +5478,15 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
             onClick={() => setDetailId(a.id)}
             aria-label={`Ver detalle de la cita de ${a.clientName}`}>
             👁 Detalle
+          </button>
+          {/* Ir a cita: MISMO patrón que el Panel («📅 Ir a cita»): lleva a
+              la pestaña Citas directamente sobre ESTA cita (focusAppt abre
+              su grupo, la resalta unos segundos y hace scroll hasta ella).
+              Solo navega; nunca abre el detalle. */}
+          <button className="btn-sm" style={{ flex: 1 }}
+            onClick={() => setTab('appointments', { focusAppt: a.id })}
+            aria-label={`Ir a la cita de ${a.clientName} a las ${fmtTime(a.time)}`}>
+            📅 Ir a cita
           </button>
           {/* Editar: abre el mismo formulario de edición con la cita
               precargada por su ID. Ya no navega a la pestaña Citas. */}
@@ -5332,17 +5593,17 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
           <button onClick={goBack} style={{ background: 'var(--primary-l)', border: 'none', borderRadius: 10, width: 36, height: 36, fontSize: 18, cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
 
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Georgia,serif', fontSize: 17, fontWeight: 700, color: 'var(--t)', textTransform: 'capitalize' }}>
+            <h1 style={{ fontFamily: 'Georgia,serif', fontSize: 17, fontWeight: 700, color: 'var(--t)', margin: 0 }}>
               {view === 'week'
                 ? (() => {
                     const ws = new Date(weekDays[0] + 'T12:00:00')
                     const we = new Date(weekDays[6] + 'T12:00:00')
                     return `${ws.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} – ${we.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}`
                   })()
-                : monthLabel
+                : capFirst(monthLabel)
               }
-            </div>
-            <button onClick={goToday} style={{ background: 'none', border: 'none', fontSize: 10, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, marginTop: 1, padding: '2px 6px', borderRadius: 6 }}>
+            </h1>
+            <button onClick={goToday} aria-label="Ir a hoy" style={{ background: 'var(--primary-l)', border: 'none', fontSize: 11, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, marginTop: 1, padding: '6px 14px', borderRadius: 8, minHeight: 24, minWidth: 24 }}>
               Hoy
             </button>
           </div>
@@ -5362,7 +5623,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
               <div style={{ fontFamily: 'Georgia,serif', fontSize: 20, fontWeight: 700, color: s.color }}>{s.val}</div>
-              <div style={{ fontSize: 9, color: s.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginTop: 2, lineHeight: 1.3 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: s.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', marginTop: 2, lineHeight: 1.3 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -5376,7 +5637,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
           {/* Day-of-week headers */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,minmax(0,1fr))', marginBottom: 4 }}>
             {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.06em', paddingBottom: 4 }}>{d}</div>
+              <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.06em', paddingBottom: 4 }}>{d}</div>
             ))}
           </div>
 
@@ -5403,7 +5664,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
                     }}>
                     <div style={{
                       fontSize: 12, fontWeight: isToday || isSel ? 700 : 500,
-                      color: isSel ? 'white' : isToday ? 'var(--primary)' : 'var(--t)',
+                      color: isSel ? 'var(--grad-t)' : isToday ? 'var(--primary)' : 'var(--t)',
                       lineHeight: 1,
                     }}>
                       {parseInt(dateStr.slice(8), 10)}
@@ -5414,8 +5675,8 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
                           ? <DayDots dateStr={dateStr} />
                           : (
                             <div style={{
-                              fontSize: 9, fontWeight: 700,
-                              color: isSel ? 'white' : 'var(--primary)',
+                              fontSize: 11, fontWeight: 700,
+                              color: isSel ? 'var(--grad-t)' : 'var(--primary)',
                               background: isSel ? 'rgba(255,255,255,0.2)' : 'var(--primary-l)',
                               borderRadius: 8, padding: '1px 4px', display: 'inline-block', marginTop: 1,
                             }}>{count}</div>
@@ -5437,7 +5698,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
               ['var(--t2)', 'Pasada'],
               ['var(--red)', 'No asistió'],
             ].map(([color, label]) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--t2)' }}>
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--t2)' }}>
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
                 {label}
               </div>
@@ -5468,14 +5729,14 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
                       border: isToday && !isSel ? '1.5px solid var(--primary)' : '1.5px solid transparent',
                       transition: 'background .12s',
                     }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: isSel ? 'rgba(255,255,255,0.8)' : 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: isSel ? 'var(--grad-t2)' : 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
                       {d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '')}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: isSel ? 'white' : isToday ? 'var(--primary)' : 'var(--t)', marginTop: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: isSel ? 'var(--grad-t)' : isToday ? 'var(--primary)' : 'var(--t)', marginTop: 1 }}>
                       {d.getDate()}
                     </div>
                     {dayAppts.length > 0 && (
-                      <div style={{ fontSize: 9, color: isSel ? 'rgba(255,255,255,0.9)' : 'var(--primary)', fontWeight: 700, marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: isSel ? 'var(--grad-t)' : 'var(--primary)', fontWeight: 700, marginTop: 2 }}>
                         {dayAppts.length} cita{dayAppts.length !== 1 ? 's' : ''}
                       </div>
                     )}
@@ -5486,7 +5747,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
 
                   {/* Empty day hint */}
                   {dayAppts.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '6px 2px', fontSize: 10, color: 'var(--border)' }}>—</div>
+                    <div style={{ textAlign: 'center', padding: '6px 2px', fontSize: 11, color: 'var(--border)' }}>—</div>
                   )}
                 </div>
               )
@@ -5502,9 +5763,9 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
         <div style={{ animation: 'slideDown .18s ease forwards' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div>
-              <div style={{ fontFamily: 'Georgia,serif', fontSize: 16, fontWeight: 700, color: 'var(--t)', textTransform: 'capitalize' }}>
-                {new Date(selDay + 'T12:00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </div>
+              <h1 style={{ fontFamily: 'Georgia,serif', fontSize: 16, fontWeight: 700, color: 'var(--t)', margin: 0 }}>
+                {capFirst(new Date(selDay + 'T12:00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }))}
+              </h1>
               <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 2 }}>
                 {selAppts.length === 0 ? 'Sin citas' : `${selAppts.length} cita${selAppts.length !== 1 ? 's' : ''}`}
                 {selAppts.length > 0 && ` · ${fmtM(selAppts.reduce((s, a) => s + toN(a.totalPrice || a.servicePrice || 0), 0))} total`}
