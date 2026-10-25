@@ -34,3 +34,5 @@
 - 2026-10-25 · madre @ 6328dd4 (docs): tip del iPhone — el calendario
   compartido no aparece solo: activarlo en la app de Google Calendar o
   vía `calendar.google.com/calendar/syncselect` en Safari.
+- 2026-10-25 · madre @ 54ededc (higiene): `.gitignore` excluye
+  `.agents/` y `skills-lock.json` (tooling local del workspace).
