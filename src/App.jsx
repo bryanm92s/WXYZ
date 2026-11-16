@@ -2105,6 +2105,59 @@ function GS() { return <style>{`
     gap:6px;
   }
 
+  /* ── UX-11-03: hover de controles pulsables que no lo tenían (§7) ──
+     Todo el bloque vive dentro de @media (hover:hover) para no dejar
+     hover pegado al tocar en móvil (§7.5). Los estilos inline ganan a
+     las reglas de clase → !important en background/color/border donde
+     el valor viene inline. Contraste AA de los estados nuevos medido en
+     las 12 paletas (sondaC-tokens-pl): --t sobre --primary-l ≥13,4 ·
+     --primary sobre --primary-l ≥4,61 · blanco sobre --primary ≥5,03 ·
+     --t2 sobre --primary-l baja a 4,34 (marino) y 4,41 (salvia), por
+     eso todo texto inactivo que se tiñe pasa a --t en el hover. */
+  @media (hover:hover){
+    /* Nav: solo la pestaña inactiva (.nb.act queda como está, §7.1).
+       NavIcon colorea por prop, no hereda color → el icono se tiñe con
+       selectores de atributo sobre fill/stroke (los fill="none" se
+       excluyen para no rellenar los iconos de trazo). */
+    .nb:not(.act):hover{color:var(--primary)}
+    .nb:not(.act):hover svg [fill]:not([fill="none"]){fill:var(--primary)}
+    .nb:not(.act):hover svg [stroke]:not([stroke="none"]){stroke:var(--primary)}
+
+    /* Celdas del mes y cabecera de semana: encender el borde
+       transparente de 1,5 px que ya traen (viene inline → !important).
+       Cero cambio de fondo ni de texto → contraste intacto; la
+       seleccionada/hoy ya lo tiene encendido (mismo color → sin cambio
+       visual) y el foco por teclado sigue distinguiéndose por outline. */
+    .cal-month-day:hover{border-color:var(--primary)!important}
+    .cal-week-day-header:hover{border-color:var(--primary)!important}
+
+    /* Segmentados inline (chips Mes/Semana y tab General/Por mes): el
+       inactivo se tiñe con --primary-l y su texto pasa a --t; el activo
+       se oscurece (chip → --primary-d) o se tiñe (tab) sin tocar su
+       color, que ya cumple AA sobre el tinte. */
+    .tap-seg:not(.on):hover,.tap-tab:not(.on):hover{background:var(--primary-l)!important;color:var(--t)!important}
+    .tap-seg.on:hover{background:var(--primary-d)!important}
+    .tap-tab.on:hover{background:var(--primary-l)!important}
+
+    /* Hoy / ‹ / ›: mismo lenguaje que .btn-sm:hover (relleno primario
+       + sombra). El transition es de la clase: esos tres no traen
+       transition inline. */
+    .tap-tint{transition:background-color .15s,color .15s,box-shadow .15s}
+    .tap-tint:hover{background:var(--primary)!important;color:white!important;box-shadow:var(--shadow-md)}
+
+    /* Acordeón: el fondo es inline (color de categoría al 5,5 % de
+       alfa) y el padre recorta con overflow:hidden → aro inset, nunca
+       outline (§7.iii). El aro solo toca el perímetro: el texto
+       (importe con color de categoría) no cambia de fondo → contraste
+       intacto. */
+    .acc-h{transition:box-shadow .15s}
+    .acc-h:hover{box-shadow:inset 0 0 0 1.5px var(--primary)}
+
+    /* Pill de cita: lift + sombra como .btn. Los colores de estado son
+       inline y no se tocan. */
+    .appt-pill:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+  }
+
   /* ── iOS / pantallas táctiles ── */
   @supports (-webkit-touch-callout:none){
     /* iOS hace zoom al enfocar campos con letra < 16px */
@@ -2451,7 +2504,7 @@ function Dashboard({clients,appts,expenses,services,confirm,deleteAppt,setTab,op
 
       <div style={{display:'flex',borderBottom:'1px solid var(--border)',background:'var(--bg)'}}>
         {[['general','General'],['month','Por mes']].map(([v,l])=>(
-          <button key={v} className="tap" onClick={()=>setFinTab(v)}
+          <button key={v} className={`tap tap-tab${finTab===v?' on':''}`} onClick={()=>setFinTab(v)}
             style={{flex:1,background:'none',border:'none',borderBottom:`2.5px solid ${finTab===v?'var(--primary)':'transparent'}`,padding:'9px 0',fontSize:12,fontWeight:finTab===v?700:500,color:finTab===v?'var(--primary)':'var(--t2)',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
             {l}
           </button>
@@ -2826,7 +2879,7 @@ function ApptsTab({clients,services,appts,SA,SC,sync,deleteAppt,confirm,infoModa
     const shown   = pageSize ? sorted.slice((effPage-1)*pageSize, effPage*pageSize) : sorted
     return (
       <div style={{border:`1.5px solid ${color}28`,borderRadius:16,marginBottom:10,overflow:'hidden'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',cursor:'pointer',background:`${color}0E`,userSelect:'none'}} onClick={()=>toggle(gKey)}>
+        <div className="acc-h" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',cursor:'pointer',background:`${color}0E`,userSelect:'none'}} onClick={()=>toggle(gKey)}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <div style={{width:10,height:10,borderRadius:'50%',background:color,flexShrink:0}}/>
             <span style={{fontWeight:700,fontSize:14,color:'var(--t)'}}>{label}</span>
@@ -6137,10 +6190,10 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
     const bg     = done ? 'var(--green-bg)' : noshow ? 'var(--red-bg)' : past ? 'var(--gold-bg)' : 'var(--primary-l)'
     const col    = done ? 'var(--green)' : noshow ? 'var(--red)' : past ? 'var(--gold)' : 'var(--primary)'
     return (
-      <div id={`appt-${a.id}`} style={{
+      <div id={`appt-${a.id}`} className="appt-pill" style={{
         background: bg, border: `1.5px solid ${col}`, borderRadius: 8,
         padding: '5px 8px', marginBottom: 4, cursor: 'pointer',
-        transition: 'transform .12s', opacity: noshow ? 0.7 : 1,
+        transition: 'transform .12s, box-shadow .12s', opacity: noshow ? 0.7 : 1,
       }}
         onClick={() => setSelDay(cleanDate(a.date))}
       >
@@ -6331,7 +6384,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
         {/* Toggle month/week */}
         <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1.5px solid var(--border)', marginBottom: 14 }}>
           {[['month', '📆 Mes'], ['week', '🗓 Semana']].map(([v, l]) => (
-            <button key={v} className="tap"
+            <button key={v} className={`tap tap-seg${view===v?' on':''}`}
               onClick={() => { setView(v); if (v === 'week' && !selDay) setSelDay(todStr) }}
               style={{
                 flex: 1, border: 'none', padding: '8px 0', fontSize: 12, fontWeight: view === v ? 700 : 500,
@@ -6345,7 +6398,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
 
         {/* Nav row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button onClick={goBack} className="tap" style={{ background: 'var(--primary-l)', border: 'none', borderRadius: 10, width: 36, height: 36, fontSize: 18, cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+          <button onClick={goBack} className="tap tap-tint" style={{ background: 'var(--primary-l)', border: 'none', borderRadius: 10, width: 36, height: 36, fontSize: 18, cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
 
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ fontFamily: 'Georgia,serif', fontSize: 17, fontWeight: 700, color: 'var(--t)', margin: 0 }}>
@@ -6358,12 +6411,12 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
                 : capFirst(monthLabel)
               }
             </h1>
-            <button onClick={goToday} aria-label="Ir a hoy" className="tap" style={{ background: 'var(--primary-l)', border: 'none', fontSize: 11, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, marginTop: 1, padding: '6px 14px', borderRadius: 8 }}>
+            <button onClick={goToday} aria-label="Ir a hoy" className="tap tap-tint" style={{ background: 'var(--primary-l)', border: 'none', fontSize: 11, color: 'var(--primary)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, marginTop: 1, padding: '6px 14px', borderRadius: 8 }}>
               Hoy
             </button>
           </div>
 
-          <button onClick={goFwd} className="tap" style={{ background: 'var(--primary-l)', border: 'none', borderRadius: 10, width: 36, height: 36, fontSize: 18, cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+          <button onClick={goFwd} className="tap tap-tint" style={{ background: 'var(--primary-l)', border: 'none', borderRadius: 10, width: 36, height: 36, fontSize: 18, cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
         </div>
       </div>
 
@@ -6427,7 +6480,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
                       background: isSel ? 'var(--primary)' : isToday ? 'var(--primary-l)' : 'transparent',
                       border: isToday && !isSel ? '1.5px solid var(--primary)' : '1.5px solid transparent',
                       opacity: isThisMonth ? 1 : 0.35,
-                      transition: 'background .12s, transform .1s',
+                      transition: 'background .12s, transform .1s, border-color .12s',
                       transform: isSel ? 'scale(0.97)' : 'scale(1)',
                     }}>
                     <div className="cal-month-day-num" style={{
@@ -6495,7 +6548,7 @@ function CalendarView({ clients, services, appts, SA, priceHistory, setTab, conf
                       textAlign: 'center', borderRadius: 10, padding: '6px 4px', marginBottom: 6, cursor: 'pointer',
                       background: isSel ? 'var(--primary)' : isToday ? 'var(--primary-l)' : 'var(--bg)',
                       border: isToday && !isSel ? '1.5px solid var(--primary)' : '1.5px solid transparent',
-                      transition: 'background .12s',
+                      transition: 'background .12s, border-color .12s',
                     }}>
                     <div className="cal-week-day-dow" style={{ fontSize: 11, fontWeight: 700, color: isSel ? 'var(--grad-t)' : isToday ? 'var(--t)' : 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
                       {d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '')}
